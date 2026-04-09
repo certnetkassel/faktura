@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Faktura{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <button class="menu-toggle" onclick="toggleSidebar()">&#9776;</button>
+  <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+  <div class="app-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        {% if settings.logo_dark or settings.logo_light %}
+          {% if settings.logo_dark %}
+          <img src="{{ url_for('static', filename='logos/' + settings.logo_dark) }}" alt="Logo" class="logo-dark sidebar-logo-img">
+          {% endif %}
+          {% if settings.logo_light %}
+          <img src="{{ url_for('static', filename='logos/' + settings.logo_light) }}" alt="Logo" class="logo-light sidebar-logo-img" style="display:none">
+          {% endif %}
+        {% else %}
+          Fak<span>tura</span>
+        {% endif %}
+      </div>
+      <ul class="sidebar-nav">
+        <li><a href="{{ url_for('dashboard') }}" class="{% if request.endpoint == 'dashboard' %}active{% endif %}">
+          <span class="nav-icon">&#9632;</span> Dashboard
+        </a></li>
+        <li><a href="{{ url_for('customers') }}" class="{% if request.endpoint in ['customers','customer_form','customer_edit'] %}active{% endif %}">
+          <span class="nav-icon">&#9862;</span> Kunden
+        </a></li>
+        <li><a href="{{ url_for('articles') }}" class="{% if request.endpoint in ['articles','article_form','article_edit'] %}active{% endif %}">
+          <span class="nav-icon">&#9998;</span> Artikel
+        </a></li>
+        <li><a href="{{ url_for('offers') }}" class="{% if request.endpoint in ['offers','offer_form','offer_edit'] %}active{% endif %}">
+          <span class="nav-icon">&#9993;</span> Angebote
+        </a></li>
+        <li><a href="{{ url_for('invoices') }}" class="{% if request.endpoint in ['invoices','invoice_form','invoice_edit'] %}active{% endif %}">
+          <span class="nav-icon">&#9783;</span> Rechnungen
+        </a></li>
+        <li><a href="{{ url_for('credits_list') }}" class="{% if request.endpoint in ['credits_list','credit_form','credit_edit'] %}active{% endif %}">
+          <span class="nav-icon">&#8634;</span> Gutschriften
+        </a></li>
+        <li><a href="{{ url_for('reminders') }}" class="{% if request.endpoint in ['reminders','reminder_form'] %}active{% endif %}">
+          <span class="nav-icon">&#9888;</span> Mahnungen
+        </a></li>
+        <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">
+          <span class="nav-icon">&#9881;</span> Einstellungen
+        </a></li>
+      </ul>
+      <div class="sidebar-footer">
+        <button class="theme-toggle" onclick="toggleTheme()">
+          <span id="themeIcon">&#9788;</span> <span id="themeLabel">Helles Design</span>
+        </button>
+        <a href="{{ url_for('logout') }}">
+          <span>&#10140;</span> Abmelden
+        </a>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  <script>
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('open');
+      document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    function toggleTheme() {
+      const html = document.documentElement;
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      const newTheme = isDark ? 'light' : 'dark';
+      html.setAttribute('data-theme', newTheme);
+      localStorage.setItem('faktura-theme', newTheme);
+      updateThemeUI(newTheme);
+    }
+
+    function updateThemeUI(theme) {
+      const icon = document.getElementById('themeIcon');
+      const label = document.getElementById('themeLabel');
+      if (theme === 'light') {
+        icon.innerHTML = '&#9790;';
+        label.textContent = 'Dunkles Design';
+      } else {
+        icon.innerHTML = '&#9788;';
+        label.textContent = 'Helles Design';
+      }
+      // Toggle logos
+      document.querySelectorAll('.logo-dark').forEach(el => el.style.display = theme === 'dark' ? '' : 'none');
+      document.querySelectorAll('.logo-light').forEach(el => el.style.display = theme === 'light' ? '' : 'none');
+    }
+
+    // Load saved theme
+    (function() {
+      const saved = localStorage.getItem('faktura-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+      updateThemeUI(saved);
+    })();
+  </script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

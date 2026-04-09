@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Neue Gutschrift — Faktura{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Neue Gutschrift</h1>
+</div>
+<form method="POST">
+  <div class="card">
+    <div class="card-header"><h2>Kopfdaten</h2></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Kunde *</label>
+        <select name="customer_id" required>
+          <option value="">— Kunde wählen —</option>
+          {% for c in customers %}
+          <option value="{{ c.id }}">{{ c.customer_nr }} — {{ c.first_name }} {{ c.last_name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Bezug auf Rechnung</label>
+        <select name="invoice_id">
+          <option value="">— Keine —</option>
+          {% for inv in invoices %}
+          <option value="{{ inv.id }}">{{ inv.invoice_nr }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Datum</label>
+        <input type="date" name="date" value="{{ today }}" required>
+      </div>
+      <div class="form-group full">
+        <label>Notizen</label>
+        <textarea name="notes" rows="2"></textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Positionen</h2>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="addItem()">+ Position</button>
+    </div>
+    <div id="itemsContainer">
+      <div class="item-row" style="font-weight:600;font-size:.8rem;color:var(--muted)">
+        <span>Beschreibung</span><span>Menge</span><span>Einheit</span><span>Preis (€)</span><span></span>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px">
+    <button type="submit" class="btn btn-primary">Speichern</button>
+    <a href="{{ url_for('credits_list') }}" class="btn btn-secondary">Abbrechen</a>
+  </div>
+</form>
+
+{% block scripts %}
+<script>
+function addItem(desc='', qty='1', unit='Stück', price='0.00') {
+  const c = document.getElementById('itemsContainer');
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = `
+    <input type="text" name="item_desc" value="${desc}" placeholder="Beschreibung">
+    <input type="number" name="item_qty" value="${qty}" step="0.01" min="0">
+    <input type="text" name="item_unit" value="${unit}">
+    <input type="number" name="item_price" value="${price}" step="0.01" min="0">
+    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()">&#10005;</button>
+  `;
+  c.appendChild(row);
+}
+addItem();
+</script>
+{% endblock %}
+{% endblock %}

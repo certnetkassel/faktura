@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Gutschriften — Faktura{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Gutschriften</h1>
+  <a href="{{ url_for('credit_form') }}" class="btn btn-primary">+ Neue Gutschrift</a>
+</div>
+<div class="card">
+  {% if credits %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nr.</th><th>Kunde</th><th>Datum</th><th>Betrag</th><th></th></tr></thead>
+      <tbody>
+      {% for cr in credits %}
+      <tr>
+        <td>{{ cr.credit_nr }}</td>
+        <td>{{ cr.last_name }}{% if cr.company %} ({{ cr.company }}){% endif %}</td>
+        <td>{{ cr.date|fmt_date }}</td>
+        <td>{{ "%.2f"|format(cr.total) }} €</td>
+        <td class="actions">
+          <a href="{{ url_for('generate_doc', doc_type='credit', doc_id=cr.id) }}" class="btn-icon" title="Word generieren">&#8681;</a>
+          <form method="POST" action="{{ url_for('send_email', doc_type='credit', doc_id=cr.id) }}" style="display:inline">
+            <button type="submit" class="btn-icon" title="Per E-Mail senden">&#9993;</button>
+          </form>
+          <form method="POST" action="{{ url_for('credit_delete', id=cr.id) }}" onsubmit="return confirm('Gutschrift löschen?')" style="display:inline">
+            <button type="submit" class="btn-icon danger" title="Löschen">&#10005;</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">&#8634;</div>
+    <p>Noch keine Gutschriften erstellt</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

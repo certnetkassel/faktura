@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Angebote — Faktura{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Angebote</h1>
+  <a href="{{ url_for('offer_form') }}" class="btn btn-primary">+ Neues Angebot</a>
+</div>
+<div class="card">
+  {% if offers %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nr.</th><th>Kunde</th><th>Datum</th><th>Betrag</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for o in offers %}
+      <tr>
+        <td>{{ o.offer_nr }}</td>
+        <td>{{ o.last_name }}{% if o.company %} ({{ o.company }}){% endif %}</td>
+        <td>{{ o.date|fmt_date }}</td>
+        <td>{{ "%.2f"|format(o.total) }} €</td>
+        <td>
+          {% if o.status == 'Angenommen' %}<span class="badge badge-green">{{ o.status }}</span>
+          {% elif o.status == 'Abgelehnt' %}<span class="badge badge-red">{{ o.status }}</span>
+          {% elif o.status == 'Gesendet' %}<span class="badge badge-blue">{{ o.status }}</span>
+          {% else %}<span class="badge badge-muted">{{ o.status }}</span>{% endif %}
+        </td>
+        <td class="actions">
+          <a href="{{ url_for('generate_doc', doc_type='offer', doc_id=o.id) }}" class="btn-icon" title="Word generieren">&#8681;</a>
+          <form method="POST" action="{{ url_for('send_email', doc_type='offer', doc_id=o.id) }}" style="display:inline">
+            <button type="submit" class="btn-icon" title="Per E-Mail senden">&#9993;</button>
+          </form>
+          {% if o.status != 'Angenommen' %}
+          <form method="POST" action="{{ url_for('offer_to_invoice', id=o.id) }}" style="display:inline">
+            <button type="submit" class="btn-icon" title="In Rechnung umwandeln">&#8594;</button>
+          </form>
+          {% endif %}
+          <a href="{{ url_for('offer_edit', id=o.id) }}" class="btn-icon" title="Bearbeiten">&#9998;</a>
+          <form method="POST" action="{{ url_for('offer_delete', id=o.id) }}" onsubmit="return confirm('Angebot löschen?')" style="display:inline">
+            <button type="submit" class="btn-icon danger" title="Löschen">&#10005;</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">&#9993;</div>
+    <p>Noch keine Angebote erstellt</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

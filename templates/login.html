@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="login-page">
+    <div class="login-card">
+      {% if settings.logo_dark or settings.logo_light %}
+        <div class="login-logo">
+          {% if settings.logo_dark %}
+          <img src="{{ url_for('static', filename='logos/' + settings.logo_dark) }}" alt="Logo" class="logo-dark">
+          {% endif %}
+          {% if settings.logo_light %}
+          <img src="{{ url_for('static', filename='logos/' + settings.logo_light) }}" alt="Logo" class="logo-light" style="display:none">
+          {% endif %}
+        </div>
+      {% else %}
+        <h1>Fak<span style="color:#6c5ce7">tura</span></h1>
+      {% endif %}
+      <p>Bitte melde dich an</p>
+
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endwith %}
+
+      <form method="POST">
+        <div class="form-group">
+          <label>Passwort</label>
+          <input type="password" name="password" autofocus required>
+        </div>
+        <button type="submit" class="btn btn-primary">Anmelden</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const saved = localStorage.getItem('faktura-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', saved);
+      document.querySelectorAll('.logo-dark').forEach(el => el.style.display = saved === 'dark' ? '' : 'none');
+      document.querySelectorAll('.logo-light').forEach(el => el.style.display = saved === 'light' ? '' : 'none');
+    })();
+  </script>
+</body>
+</html>

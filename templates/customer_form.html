@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Kunde bearbeiten' if c else 'Neuer Kunde' }} — Faktura{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ 'Kunde bearbeiten' if c else 'Neuer Kunde' }}</h1>
+</div>
+<form method="POST">
+  <div class="card">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Kundennummer</label>
+        <input type="text" name="customer_nr" value="{{ c.customer_nr if c else next_nr }}" required>
+      </div>
+      <div class="form-group">
+        <label>Firma</label>
+        <input type="text" name="company" value="{{ c.company if c else '' }}">
+      </div>
+      <div class="form-group">
+        <label>Anrede</label>
+        <select name="salutation">
+          <option value="" {{ 'selected' if not c or not c.salutation }}>—</option>
+          <option value="Herr" {{ 'selected' if c and c.salutation=='Herr' }}>Herr</option>
+          <option value="Frau" {{ 'selected' if c and c.salutation=='Frau' }}>Frau</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Vorname</label>
+        <input type="text" name="first_name" value="{{ c.first_name if c else '' }}">
+      </div>
+      <div class="form-group">
+        <label>Nachname *</label>
+        <input type="text" name="last_name" value="{{ c.last_name if c else '' }}" required>
+      </div>
+      <div class="form-group">
+        <label>Straße</label>
+        <input type="text" name="street" value="{{ c.street if c else '' }}">
+      </div>
+      <div class="form-group">
+        <label>PLZ</label>
+        <input type="text" name="zip" value="{{ c.zip if c else '' }}">
+      </div>
+      <div class="form-group">
+        <label>Stadt</label>
+        <input type="text" name="city" value="{{ c.city if c else '' }}">
+      </div>
+      <div class="form-group">
+        <label>E-Mail</label>
+        <input type="email" name="email" value="{{ c.email if c else '' }}">
+      </div>
+      <div class="form-group">
+        <label>Telefon</label>
+        <input type="text" name="phone" value="{{ c.phone if c else '' }}">
+      </div>
+      <div class="form-group full">
+        <label>Notizen</label>
+        <textarea name="notes">{{ c.notes if c else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+  <div style="display:flex;gap:10px">
+    <button type="submit" class="btn btn-primary">Speichern</button>
+    <a href="{{ url_for('customers') }}" class="btn btn-secondary">Abbrechen</a>
+  </div>
+</form>
+{% endblock %}

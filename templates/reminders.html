@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Mahnungen — Faktura{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Mahnungen</h1>
+</div>
+
+{% if overdue %}
+<div class="card">
+  <div class="card-header"><h2>Überfällige Rechnungen</h2></div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Rechnung</th><th>Kunde</th><th>Betrag</th><th>Fällig seit</th><th></th></tr></thead>
+      <tbody>
+      {% for i in overdue %}
+      <tr>
+        <td>{{ i.invoice_nr }}</td>
+        <td>{{ i.last_name }}{% if i.company %} ({{ i.company }}){% endif %}</td>
+        <td>{{ "%.2f"|format(i.total) }} €</td>
+        <td><span class="badge badge-red">{{ i.due_date|fmt_date }}</span></td>
+        <td class="actions">
+          <a href="{{ url_for('reminder_form', invoice_id=i.id) }}" class="btn btn-sm btn-danger">Mahnung erstellen</a>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header"><h2>Erstellte Mahnungen</h2></div>
+  {% if reminders %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Rechnung</th><th>Stufe</th><th>Kunde</th><th>Datum</th><th>Frist</th><th>Gebühr</th><th></th></tr></thead>
+      <tbody>
+      {% for r in reminders %}
+      <tr>
+        <td>{{ r.invoice_nr }}</td>
+        <td><span class="badge badge-{% if r.level==1 %}yellow{% elif r.level==2 %}red{% else %}red{% endif %}">{{ r.level }}. Mahnung</span></td>
+        <td>{{ r.last_name }}{% if r.company %} ({{ r.company }}){% endif %}</td>
+        <td>{{ r.date|fmt_date }}</td>
+        <td>{{ r.due_date|fmt_date }}</td>
+        <td>{{ "%.2f"|format(r.fee) }} €</td>
+        <td class="actions">
+          <a href="{{ url_for('generate_doc', doc_type='reminder', doc_id=r.id) }}" class="btn-icon" title="Word generieren">&#8681;</a>
+          <form method="POST" action="{{ url_for('send_email', doc_type='reminder', doc_id=r.id) }}" style="display:inline">
+            <button type="submit" class="btn-icon" title="Per E-Mail senden">&#9993;</button>
+          </form>
+          <form method="POST" action="{{ url_for('reminder_delete', id=r.id) }}" onsubmit="return confirm('Mahnung löschen?')" style="display:inline">
+            <button type="submit" class="btn-icon danger" title="Löschen">&#10005;</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">&#9888;</div>
+    <p>Noch keine Mahnungen erstellt</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

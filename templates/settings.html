@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+{% block title %}Einstellungen — Faktura{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Einstellungen</h1>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+  <div class="card">
+    <div class="card-header"><h2>Firmendaten</h2></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Firmenname</label>
+        <input type="text" name="company_name" value="{{ s.company_name }}">
+      </div>
+      <div class="form-group">
+        <label>Inhaber</label>
+        <input type="text" name="owner_name" value="{{ s.owner_name }}">
+      </div>
+      <div class="form-group">
+        <label>Straße</label>
+        <input type="text" name="street" value="{{ s.street }}">
+      </div>
+      <div class="form-group">
+        <label>PLZ</label>
+        <input type="text" name="zip" value="{{ s.zip }}">
+      </div>
+      <div class="form-group">
+        <label>Stadt</label>
+        <input type="text" name="city" value="{{ s.city }}">
+      </div>
+      <div class="form-group">
+        <label>Telefon</label>
+        <input type="text" name="phone" value="{{ s.phone }}">
+      </div>
+      <div class="form-group">
+        <label>E-Mail</label>
+        <input type="email" name="email" value="{{ s.email }}">
+      </div>
+      <div class="form-group">
+        <label>Steuernummer</label>
+        <input type="text" name="tax_number" value="{{ s.tax_number }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Logo</h2></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Logo für dunklen Hintergrund</label>
+        <input type="file" name="logo_dark" accept="image/*">
+        {% if s.logo_dark %}
+        <div style="margin-top:8px">
+          <img src="{{ url_for('static', filename='logos/' + s.logo_dark) }}" style="max-height:40px;border-radius:4px">
+          <span style="color:var(--muted);font-size:.8rem;margin-left:8px">{{ s.logo_dark }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="form-group">
+        <label>Logo für hellen Hintergrund</label>
+        <input type="file" name="logo_light" accept="image/*">
+        {% if s.logo_light %}
+        <div style="margin-top:8px">
+          <img src="{{ url_for('static', filename='logos/' + s.logo_light) }}" style="max-height:40px;border-radius:4px;background:#f0f2f5;padding:4px">
+          <span style="color:var(--muted);font-size:.8rem;margin-left:8px">{{ s.logo_light }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Bankverbindung</h2></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Bank</label>
+        <input type="text" name="bank_name" value="{{ s.bank_name }}">
+      </div>
+      <div class="form-group">
+        <label>IBAN</label>
+        <input type="text" name="iban" value="{{ s.iban }}">
+      </div>
+      <div class="form-group">
+        <label>BIC</label>
+        <input type="text" name="bic" value="{{ s.bic }}">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Nummernkreise</h2></div>
+    <p style="color:var(--muted);font-size:.85rem;margin-bottom:14px">
+      Format: Präfix-JJMM### (z.B. RE-2603001 = Rechnung, März 2026, Nr. 1)
+    </p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Rechnungs-Präfix</label>
+        <input type="text" name="invoice_prefix" value="{{ s.invoice_prefix }}">
+      </div>
+      <div class="form-group">
+        <label>Nächste lfd. Nr.</label>
+        <input type="number" name="next_invoice_nr" value="{{ s.next_invoice_nr }}" min="1">
+      </div>
+      <div class="form-group">
+        <label>Angebots-Präfix</label>
+        <input type="text" name="offer_prefix" value="{{ s.offer_prefix }}">
+      </div>
+      <div class="form-group">
+        <label>Nächste lfd. Nr.</label>
+        <input type="number" name="next_offer_nr" value="{{ s.next_offer_nr }}" min="1">
+      </div>
+      <div class="form-group">
+        <label>Gutschrift-Präfix</label>
+        <input type="text" name="credit_prefix" value="{{ s.credit_prefix }}">
+      </div>
+      <div class="form-group">
+        <label>Nächste lfd. Nr.</label>
+        <input type="number" name="next_credit_nr" value="{{ s.next_credit_nr }}" min="1">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Kleinunternehmer-Regelung</h2></div>
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>Hinweistext (§19 UStG)</label>
+        <textarea name="kleinunternehmer_text" rows="2">{{ s.kleinunternehmer_text }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>E-Mail-Versand (Microsoft 365)</h2></div>
+    <div class="alert alert-info" style="margin-bottom:14px">
+      Voreingestellt für Microsoft 365 (SMTP: smtp.office365.com, Port 587, STARTTLS).
+      Trage deinen Microsoft 365 Benutzernamen (E-Mail) und dein App-Passwort ein.
+    </div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>SMTP-Server</label>
+        <input type="text" name="smtp_host" value="{{ s.smtp_host }}" placeholder="smtp.office365.com">
+      </div>
+      <div class="form-group">
+        <label>Port</label>
+        <input type="number" name="smtp_port" value="{{ s.smtp_port }}">
+      </div>
+      <div class="form-group">
+        <label>Benutzername (E-Mail)</label>
+        <input type="text" name="smtp_user" value="{{ s.smtp_user }}" placeholder="name@deinefirma.de">
+      </div>
+      <div class="form-group">
+        <label>App-Passwort</label>
+        <input type="password" name="smtp_pass" value="{{ s.smtp_pass }}">
+      </div>
+      <div class="form-group">
+        <label>Absender-Adresse</label>
+        <input type="email" name="smtp_from" value="{{ s.smtp_from }}" placeholder="name@deinefirma.de">
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Passwort ändern</h2></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Neues Passwort (leer = unverändert)</label>
+        <input type="password" name="new_password" placeholder="Neues Passwort eingeben...">
+      </div>
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary" style="margin-top:8px">Speichern</button>
+</form>
+{% endblock %}

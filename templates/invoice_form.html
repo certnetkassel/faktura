@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Rechnung bearbeiten' if inv else 'Neue Rechnung' }} — Faktura{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>{{ 'Rechnung bearbeiten' if inv else 'Neue Rechnung' }}</h1>
+</div>
+<form method="POST" id="docForm">
+  <div class="card">
+    <div class="card-header"><h2>Kopfdaten</h2></div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Kunde *</label>
+        <select name="customer_id" required>
+          <option value="">— Kunde wählen —</option>
+          {% for c in customers %}
+          <option value="{{ c.id }}" {{ 'selected' if inv and inv.customer_id==c.id }}>
+            {{ c.customer_nr }} — {{ c.first_name }} {{ c.last_name }}{% if c.company %} ({{ c.company }}){% endif %}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Rechnungsdatum</label>
+        <input type="date" name="date" value="{{ inv.date if inv else today }}" required>
+      </div>
+      <div class="form-group">
+        <label>Fällig am</label>
+        <input type="date" name="due_date" value="{{ inv.due_date if inv else due }}" required>
+      </div>
+      <div class="form-group full">
+        <label>Notizen</label>
+        <textarea name="notes" rows="2">{{ inv.notes if inv else '' }}</textarea>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header">
+      <h2>Positionen</h2>
+      <button type="button" class="btn btn-sm btn-secondary" onclick="addItem()">+ Position</button>
+    </div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Artikel übernehmen</label>
+      <select id="articleSelect" onchange="loadArticle(this)">
+        <option value="">— Artikel wählen —</option>
+        {% for a in articles %}
+        <option value="{{ a.id }}">{{ a.name }} ({{ "%.2f"|format(a.price) }} €/{{ a.unit }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div id="itemsContainer">
+      <div class="item-row" style="font-weight:600;font-size:.8rem;color:var(--muted)">
+        <span>Beschreibung</span><span>Menge</span><span>Einheit</span><span>Preis (€)</span><span></span>
+      </div>
+      {% for item in items %}
+      <div class="item-row">
+        <input type="text" name="item_desc" value="{{ item.description }}" placeholder="Beschreibung">
+        <input type="number" name="item_qty" value="{{ item.quantity }}" step="0.01" min="0">
+        <input type="text" name="item_unit" value="{{ item.unit }}">
+        <input type="number" name="item_price" value="{{ '%.2f'|format(item.price) }}" step="0.01" min="0">
+        <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()">&#10005;</button>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div style="display:flex;gap:10px">
+    <button type="submit" class="btn btn-primary">Speichern</button>
+    <a href="{{ url_for('invoices') }}" class="btn btn-secondary">Abbrechen</a>
+  </div>
+</form>
+
+{% block scripts %}
+<script>
+function addItem(desc='', qty='1', unit='Stunde', price='0.00') {
+  const c = document.getElementById('itemsContainer');
+  const row = document.createElement('div');
+  row.className = 'item-row';
+  row.innerHTML = `
+    <input type="text" name="item_desc" value="${desc}" placeholder="Beschreibung">
+    <input type="number" name="item_qty" value="${qty}" step="0.01" min="0">
+    <input type="text" name="item_unit" value="${unit}">
+    <input type="number" name="item_price" value="${price}" step="0.01" min="0">
+    <button type="button" class="btn-icon danger" onclick="this.parentElement.remove()">&#10005;</button>
+  `;
+  c.appendChild(row);
+}
+
+function loadArticle(sel) {
+  if (!sel.value) return;
+  fetch('/api/article/' + sel.value)
+    .then(r => r.json())
+    .then(a => {
+      addItem(a.description || a.name, '1', a.unit, parseFloat(a.price).toFixed(2));
+      sel.value = '';
+    });
+}
+
+{% if not items %}addItem();{% endif %}
+</script>
+{% endblock %}
+{% endblock %}

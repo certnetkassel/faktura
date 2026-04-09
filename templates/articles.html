@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Artikel — Faktura{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Artikel</h1>
+  <a href="{{ url_for('article_form') }}" class="btn btn-primary">+ Neuer Artikel</a>
+</div>
+<div class="card">
+  {% if articles %}
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Nr.</th><th>Bezeichnung</th><th>Einheit</th><th>Preis</th><th></th></tr></thead>
+      <tbody>
+      {% for a in articles %}
+      <tr>
+        <td>{{ a.article_nr }}</td>
+        <td>{{ a.name }}</td>
+        <td>{{ a.unit }}</td>
+        <td>{{ "%.2f"|format(a.price) }} €</td>
+        <td class="actions">
+          <a href="{{ url_for('article_edit', id=a.id) }}" class="btn-icon" title="Bearbeiten">&#9998;</a>
+          <form method="POST" action="{{ url_for('article_delete', id=a.id) }}" onsubmit="return confirm('Artikel wirklich löschen?')">
+            <button type="submit" class="btn-icon danger" title="Löschen">&#10005;</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-icon">&#9998;</div>
+    <p>Noch keine Artikel angelegt</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
