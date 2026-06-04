@@ -150,7 +150,7 @@ Word-Vorlagen liegen in `/opt/faktura/vorlagen/`. Die App ersetzt Platzhalter in
 ### Platzhalter (alle Vorlagen)
 **Firma:** {{firma}}, {{inhaber}}, {{firma_strasse}}, {{firma_plz}}, {{firma_stadt}}, {{firma_telefon}}, {{firma_email}}, {{steuernummer}}, {{bank}}, {{iban}}, {{bic}}, {{kleinunternehmer}}
 
-**Kunde:** {{kunde_firma}}, {{kunde_anrede}}, {{kunde_vorname}}, {{kunde_nachname}}, {{kunde_strasse}}, {{kunde_plz}}, {{kunde_stadt}}, {{kunde_nr}}
+**Kunde:** {{kunde_firma}}, {{kunde_anrede}}, {{kunde_vorname}}, {{kunde_nachname}}, {{kunde_strasse}}, {{kunde_plz}}, {{kunde_stadt}}, {{kunde_nr}}, {{kunde_email}}, {{kunde_telefon}}
 
 **Logo:** {{logo}} (Bild-Platzhalter, siehe unten)
 
@@ -158,7 +158,7 @@ Word-Vorlagen liegen in `/opt/faktura/vorlagen/`. Die App ersetzt Platzhalter in
 - **Rechnung:** {{rechnung_nr}}, {{rechnung_datum}}, {{faellig_datum}}, {{gesamtbetrag}}, {{notizen}}, {{positionen}}
 - **Angebot:** {{angebot_nr}}, {{angebot_datum}}, {{gueltig_bis}}, {{gesamtbetrag}}, {{notizen}}, {{positionen}}
 - **Gutschrift:** {{gutschrift_nr}}, {{gutschrift_datum}}, {{gesamtbetrag}}, {{notizen}}, {{positionen}}
-- **Mahnung:** {{mahnung_stufe}}, {{mahnung_datum}}, {{mahnung_frist}}, {{mahngebuehr}}, {{rechnung_nr}}, {{rechnung_datum}}, {{rechnung_betrag}}, {{notizen}}
+- **Mahnung:** {{mahnung_stufe}}, {{mahnung_datum}}, {{mahnung_frist}}, {{mahngebuehr}}, {{rechnung_nr}}, {{rechnung_datum}}, {{rechnung_faellig_datum}}, {{rechnung_betrag}}, {{gesamtbetrag}} (= Rechnung + Mahngebühr), {{notizen}}, {{positionen}} (Positionen der gemahnten Rechnung)
 
 ### {{positionen}}-Marker
 In einer Tabellenzelle platziert. Die App sucht nach diesem Marker, löscht ihn und fügt dynamisch Zeilen mit Pos/Bezeichnung/Menge/Einheit/Einzelpreis/Gesamt hinzu.

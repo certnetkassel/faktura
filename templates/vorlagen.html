@@ -79,6 +79,8 @@
         <tr><td class="ph"><code>{{kunde_plz}}</code></td><td>Postleitzahl</td></tr>
         <tr><td class="ph"><code>{{kunde_stadt}}</code></td><td>Ort</td></tr>
         <tr><td class="ph"><code>{{kunde_nr}}</code></td><td>Kundennummer (z. B. K-0001)</td></tr>
+        <tr><td class="ph"><code>{{kunde_email}}</code></td><td>E-Mail-Adresse des Kunden</td></tr>
+        <tr><td class="ph"><code>{{kunde_telefon}}</code></td><td>Telefonnummer des Kunden</td></tr>
       </tbody>
     </table></div>
 
@@ -138,10 +140,17 @@
         <tr><td class="ph"><code>{{mahngebuehr}}</code></td><td>Mahngebühr</td></tr>
         <tr><td class="ph"><code>{{rechnung_nr}}</code></td><td>Nummer der gemahnten Rechnung</td></tr>
         <tr><td class="ph"><code>{{rechnung_datum}}</code></td><td>Datum dieser Rechnung</td></tr>
-        <tr><td class="ph"><code>{{rechnung_betrag}}</code></td><td>Betrag dieser Rechnung</td></tr>
+        <tr><td class="ph"><code>{{rechnung_faellig_datum}}</code></td><td>Ursprüngliche Fälligkeit der Rechnung</td></tr>
+        <tr><td class="ph"><code>{{rechnung_betrag}}</code></td><td>Betrag der Rechnung (ohne Mahngebühr)</td></tr>
+        <tr><td class="ph"><code>{{gesamtbetrag}}</code></td><td>Gesamtforderung (Rechnung + Mahngebühr)</td></tr>
         <tr><td class="ph"><code>{{notizen}}</code></td><td>Notizen / Bemerkungen</td></tr>
+        <tr><td class="ph"><code>{{positionen}}</code></td><td>Tabelle der Positionen der gemahnten Rechnung (optional)</td></tr>
       </tbody>
     </table></div>
+
+    <div style="margin-top:16px;padding:12px 14px;border:1px solid var(--border,#3a3a3a);border-radius:8px;font-size:13px;opacity:.85">
+      <strong>Hinweis zu <code>{{positionen}}</code>:</strong> Dieser Marker steht für die <em>komplette Positionstabelle</em>, nicht für einzelne Felder. Setze ihn in <strong>eine Tabellenzelle</strong> deiner Vorlage. Die App ersetzt ihn durch dynamische Zeilen mit den Spalten <strong>Pos · Beschreibung · Menge · Einheit · Einzelpreis · Gesamt</strong>. Einzelne Platzhalter wie <code>{{beschreibung}}</code> oder <code>{{menge}}</code> gibt es nicht — sie kämen bei mehreren Positionen nicht mit einer einzelnen Stelle aus. Lege die Spaltenüberschriften als erste Tabellenzeile an; darunter in eine Zelle <code>{{positionen}}</code>.
+    </div>
     {% endraw %}
   </div>
 </div>

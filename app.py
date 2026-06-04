@@ -933,6 +933,8 @@ def generate_doc(doc_type, doc_id):
             '{{kunde_plz}}': cust['zip'],
             '{{kunde_stadt}}': cust['city'],
             '{{kunde_nr}}': cust['customer_nr'],
+            '{{kunde_email}}': cust['email'],
+            '{{kunde_telefon}}': cust['phone'],
             '{{gesamtbetrag}}': f"{inv['total']:.2f} €",
             '{{notizen}}': inv['notes'] or '',
         })
@@ -954,6 +956,8 @@ def generate_doc(doc_type, doc_id):
             '{{kunde_plz}}': cust['zip'],
             '{{kunde_stadt}}': cust['city'],
             '{{kunde_nr}}': cust['customer_nr'],
+            '{{kunde_email}}': cust['email'],
+            '{{kunde_telefon}}': cust['phone'],
             '{{gesamtbetrag}}': f"{off['total']:.2f} €",
             '{{notizen}}': off['notes'] or '',
         })
@@ -974,6 +978,8 @@ def generate_doc(doc_type, doc_id):
             '{{kunde_plz}}': cust['zip'],
             '{{kunde_stadt}}': cust['city'],
             '{{kunde_nr}}': cust['customer_nr'],
+            '{{kunde_email}}': cust['email'],
+            '{{kunde_telefon}}': cust['phone'],
             '{{gesamtbetrag}}': f"{cr['total']:.2f} €",
             '{{notizen}}': cr['notes'] or '',
         })
@@ -984,7 +990,8 @@ def generate_doc(doc_type, doc_id):
                             JOIN invoices i ON r.invoice_id=i.id WHERE r.id=?''', [doc_id]).fetchone()
         inv = db.execute("SELECT * FROM invoices WHERE id=?", [rem['invoice_id']]).fetchone()
         cust = db.execute("SELECT * FROM customers WHERE id=?", [inv['customer_id']]).fetchone()
-        items = []
+        # Positionen der gemahnten Rechnung laden, damit {{positionen}} auch in der Mahnung funktioniert
+        items = db.execute("SELECT * FROM invoice_items WHERE invoice_id=? ORDER BY position", [rem['invoice_id']]).fetchall()
         replacements.update({
             '{{mahnung_stufe}}': str(rem['level']),
             '{{mahnung_datum}}': fmt_date(rem['date']),
@@ -992,7 +999,9 @@ def generate_doc(doc_type, doc_id):
             '{{mahngebuehr}}': f"{rem['fee']:.2f} €",
             '{{rechnung_nr}}': inv['invoice_nr'],
             '{{rechnung_datum}}': fmt_date(inv['date']),
+            '{{rechnung_faellig_datum}}': fmt_date(inv['due_date']),
             '{{rechnung_betrag}}': f"{inv['total']:.2f} €",
+            '{{gesamtbetrag}}': f"{inv['total'] + rem['fee']:.2f} €",
             '{{kunde_firma}}': cust['company'],
             '{{kunde_anrede}}': cust['salutation'],
             '{{kunde_vorname}}': cust['first_name'],
@@ -1001,6 +1010,8 @@ def generate_doc(doc_type, doc_id):
             '{{kunde_plz}}': cust['zip'],
             '{{kunde_stadt}}': cust['city'],
             '{{kunde_nr}}': cust['customer_nr'],
+            '{{kunde_email}}': cust['email'],
+            '{{kunde_telefon}}': cust['phone'],
             '{{notizen}}': rem['notes'] or '',
         })
         output_name = f"Mahnung_{rem['level']}_{inv['invoice_nr']}.docx"
@@ -1201,6 +1212,8 @@ def vorlage_muster(doc_type):
         '{{kunde_plz}}': '34117',
         '{{kunde_stadt}}': 'Kassel',
         '{{kunde_nr}}': 'K-0001',
+        '{{kunde_email}}': 'max.mustermann@example.com',
+        '{{kunde_telefon}}': '+49 561 1234567',
         '{{notizen}}': '',
     }
 
@@ -1235,7 +1248,9 @@ def vorlage_muster(doc_type):
             '{{mahngebuehr}}': '5,00 €',
             '{{rechnung_nr}}': 'RE-2603001',
             '{{rechnung_datum}}': '01.03.2026',
+            '{{rechnung_faellig_datum}}': '15.03.2026',
             '{{rechnung_betrag}}': '1.200,00 €',
+            '{{gesamtbetrag}}': '1.205,00 €',
         })
         output_name = 'Muster_Mahnung.docx'
 
@@ -1253,7 +1268,7 @@ def vorlage_muster(doc_type):
         replace_placeholders(doc, {LOGO_PLACEHOLDER: ''})
 
     # Positionen einfügen (falls vorhanden)
-    if doc_type in ['rechnung', 'angebot', 'gutschrift']:
+    if doc_type in ['rechnung', 'angebot', 'gutschrift', 'mahnung']:
         muster_positionen = [
             {'position': 1, 'description': 'Power Apps Entwicklung', 'quantity': 10, 'unit': 'Stunde(n)', 'price': 85.00, 'total': 850.00},
             {'position': 2, 'description': 'Datenbank-Design und Einrichtung', 'quantity': 1, 'unit': 'Pauschale', 'price': 500.00, 'total': 500.00},
