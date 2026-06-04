@@ -59,6 +59,60 @@ def fmt_date(d):
 app.jinja_env.filters['fmt_date'] = fmt_date
 
 
+# ── Word-Platzhalter-Ersetzung (robust) ──
+
+def _replace_in_paragraph(paragraph, replacements):
+    """Ersetzt Platzhalter in einem Absatz – auch wenn Word den Platzhalter
+    über mehrere Runs zerrissen hat (z.B. '{{rechnung' + '_nr}}').
+
+    Word teilt Platzhalter beim Bearbeiten oft auf mehrere Runs auf. Eine
+    Ersetzung pro Run (key in run.text) scheitert dann. Daher wird der
+    komplette Absatztext zusammengesetzt, ersetzt und – nur wenn sich etwas
+    geändert hat – in den ersten Run geschrieben; die übrigen Runs werden
+    geleert. Die Formatierung des ersten Runs bleibt erhalten.
+    """
+    if '{{' not in paragraph.text:
+        return
+    original = paragraph.text
+    new_text = original
+    for key, value in replacements.items():
+        if key in new_text:
+            new_text = new_text.replace(key, value if value is not None else '')
+    if new_text == original:
+        return
+    if paragraph.runs:
+        paragraph.runs[0].text = new_text
+        for run in paragraph.runs[1:]:
+            run.text = ''
+    else:
+        paragraph.text = new_text
+
+
+def _replace_in_tables(tables, replacements):
+    """Ersetzt Platzhalter in allen Tabellenzellen, rekursiv (verschachtelte Tabellen)."""
+    for table in tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    _replace_in_paragraph(paragraph, replacements)
+                if cell.tables:
+                    _replace_in_tables(cell.tables, replacements)
+
+
+def replace_placeholders(doc, replacements):
+    """Ersetzt alle Platzhalter im gesamten Dokument: Body, Tabellen sowie
+    Kopf- und Fußzeilen aller Abschnitte (inkl. First-Page/Even-Page)."""
+    for paragraph in doc.paragraphs:
+        _replace_in_paragraph(paragraph, replacements)
+    _replace_in_tables(doc.tables, replacements)
+    for section in doc.sections:
+        for hf in (section.header, section.first_page_header, section.even_page_header,
+                   section.footer, section.first_page_footer, section.even_page_footer):
+            for paragraph in hf.paragraphs:
+                _replace_in_paragraph(paragraph, replacements)
+            _replace_in_tables(hf.tables, replacements)
+
+
 @app.context_processor
 def inject_settings():
     """Make settings available in all templates (for logo display)."""
@@ -817,6 +871,7 @@ def generate_doc(doc_type, doc_id):
             '{{kunde_strasse}}': cust['street'],
             '{{kunde_plz}}': cust['zip'],
             '{{kunde_stadt}}': cust['city'],
+            '{{kunde_nr}}': cust['customer_nr'],
             '{{gesamtbetrag}}': f"{inv['total']:.2f} €",
             '{{notizen}}': inv['notes'] or '',
         })
@@ -837,6 +892,7 @@ def generate_doc(doc_type, doc_id):
             '{{kunde_strasse}}': cust['street'],
             '{{kunde_plz}}': cust['zip'],
             '{{kunde_stadt}}': cust['city'],
+            '{{kunde_nr}}': cust['customer_nr'],
             '{{gesamtbetrag}}': f"{off['total']:.2f} €",
             '{{notizen}}': off['notes'] or '',
         })
@@ -856,6 +912,7 @@ def generate_doc(doc_type, doc_id):
             '{{kunde_strasse}}': cust['street'],
             '{{kunde_plz}}': cust['zip'],
             '{{kunde_stadt}}': cust['city'],
+            '{{kunde_nr}}': cust['customer_nr'],
             '{{gesamtbetrag}}': f"{cr['total']:.2f} €",
             '{{notizen}}': cr['notes'] or '',
         })
@@ -882,6 +939,7 @@ def generate_doc(doc_type, doc_id):
             '{{kunde_strasse}}': cust['street'],
             '{{kunde_plz}}': cust['zip'],
             '{{kunde_stadt}}': cust['city'],
+            '{{kunde_nr}}': cust['customer_nr'],
             '{{notizen}}': rem['notes'] or '',
         })
         output_name = f"Mahnung_{rem['level']}_{inv['invoice_nr']}.docx"
@@ -891,22 +949,8 @@ def generate_doc(doc_type, doc_id):
     # Process Word template
     doc = Document(template_file)
 
-    for paragraph in doc.paragraphs:
-        for key, value in replacements.items():
-            if key in paragraph.text:
-                for run in paragraph.runs:
-                    if key in run.text:
-                        run.text = run.text.replace(key, value or '')
-
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                for paragraph in cell.paragraphs:
-                    for key, value in replacements.items():
-                        if key in paragraph.text:
-                            for run in paragraph.runs:
-                                if key in run.text:
-                                    run.text = run.text.replace(key, value or '')
+    # Platzhalter robust ersetzen (Body, Tabellen, Kopf-/Fußzeilen, run-übergreifend)
+    replace_placeholders(doc, replacements)
 
     # Handle items table — look for {{positionen}} marker
     for table in doc.tables:
@@ -1128,23 +1172,8 @@ def vorlage_muster(doc_type):
 
     doc = DocxDocument(template_file)
 
-    # Textfelder ersetzen
-    for paragraph in doc.paragraphs:
-        for key, value in beispiel.items():
-            if key in paragraph.text:
-                for run in paragraph.runs:
-                    if key in run.text:
-                        run.text = run.text.replace(key, value or '')
-
-    for table in doc.tables:
-        for row in table.rows:
-            for cell in row.cells:
-                for paragraph in cell.paragraphs:
-                    for key, value in beispiel.items():
-                        if key in paragraph.text:
-                            for run in paragraph.runs:
-                                if key in run.text:
-                                    run.text = run.text.replace(key, value or '')
+    # Platzhalter robust ersetzen (Body, Tabellen, Kopf-/Fußzeilen, run-übergreifend)
+    replace_placeholders(doc, beispiel)
 
     # Positionen einfügen (falls vorhanden)
     if doc_type in ['rechnung', 'angebot', 'gutschrift']:
@@ -1169,21 +1198,6 @@ def vorlage_muster(doc_type):
                                 cells[4].text = f"{item['price']:.2f} €"
                                 if len(cells) >= 6:
                                     cells[5].text = f"{item['total']:.2f} €"
-
-    # Header/Footer ersetzen
-    for section in doc.sections:
-        for paragraph in section.header.paragraphs:
-            for key, value in beispiel.items():
-                if key in paragraph.text:
-                    for run in paragraph.runs:
-                        if key in run.text:
-                            run.text = run.text.replace(key, value or '')
-        for paragraph in section.footer.paragraphs:
-            for key, value in beispiel.items():
-                if key in paragraph.text:
-                    for run in paragraph.runs:
-                        if key in run.text:
-                            run.text = run.text.replace(key, value or '')
 
     output_path = os.path.join(OUTPUT_FOLDER, output_name)
     doc.save(output_path)
