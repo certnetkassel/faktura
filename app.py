@@ -174,6 +174,36 @@ def get_logo_path(s, prefer='light'):
     return None
 
 
+def fill_positions(doc, items):
+    """Ersetzt den {{positionen}}-Marker durch je eine Tabellenzeile pro Position.
+    Die Markerzeile wird durch die Positionszeilen ersetzt und anschließend entfernt
+    (sonst bliebe an ihrer Stelle eine leere Zeile stehen)."""
+    for table in doc.tables:
+        marker_row = None
+        for row in table.rows:
+            if any('{{positionen}}' in cell.text for cell in row.cells):
+                marker_row = row
+                break
+        if marker_row is None:
+            continue
+        for item in items:
+            new_row = table.add_row()
+            cells = new_row.cells
+            if len(cells) >= 5:
+                cells[0].text = str(item['position'])
+                cells[1].text = item['description']
+                cells[2].text = str(item['quantity'])
+                cells[3].text = item['unit']
+                cells[4].text = f"{item['price']:.2f} €"
+                if len(cells) >= 6:
+                    cells[5].text = f"{item['total']:.2f} €"
+            # neue Zeile an die Marker-Position schieben (Reihenfolge bleibt erhalten)
+            marker_row._tr.addprevious(new_row._tr)
+        # Markerzeile entfernen
+        marker_row._tr.getparent().remove(marker_row._tr)
+        break  # nur eine Positionstabelle
+
+
 @app.context_processor
 def inject_settings():
     """Make settings available in all templates (for logo display)."""
@@ -1032,25 +1062,8 @@ def generate_doc(doc_type, doc_id):
     else:
         replace_placeholders(doc, {LOGO_PLACEHOLDER: ''})
 
-    # Handle items table — look for {{positionen}} marker
-    for table in doc.tables:
-        for i, row in enumerate(table.rows):
-            for cell in row.cells:
-                if '{{positionen}}' in cell.text:
-                    # Clear marker
-                    cell.text = ''
-                    # Add item rows
-                    for item in items:
-                        new_row = table.add_row()
-                        cells = new_row.cells
-                        if len(cells) >= 5:
-                            cells[0].text = str(item['position'])
-                            cells[1].text = item['description']
-                            cells[2].text = str(item['quantity'])
-                            cells[3].text = item['unit']
-                            cells[4].text = f"{item['price']:.2f} €"
-                            if len(cells) >= 6:
-                                cells[5].text = f"{item['total']:.2f} €"
+    # Positionen einfügen ({{positionen}}-Marker -> Zeilen, Markerzeile wird entfernt)
+    fill_positions(doc, items)
 
     output_path = os.path.join(OUTPUT_FOLDER, output_name)
     doc.save(output_path)
@@ -1267,29 +1280,13 @@ def vorlage_muster(doc_type):
     else:
         replace_placeholders(doc, {LOGO_PLACEHOLDER: ''})
 
-    # Positionen einfügen (falls vorhanden)
-    if doc_type in ['rechnung', 'angebot', 'gutschrift', 'mahnung']:
-        muster_positionen = [
-            {'position': 1, 'description': 'Power Apps Entwicklung', 'quantity': 10, 'unit': 'Stunde(n)', 'price': 85.00, 'total': 850.00},
-            {'position': 2, 'description': 'Datenbank-Design und Einrichtung', 'quantity': 1, 'unit': 'Pauschale', 'price': 500.00, 'total': 500.00},
-            {'position': 3, 'description': 'Monatliche Wartung & Support', 'quantity': 3, 'unit': 'pro Monat', 'price': 500.00, 'total': 1500.00},
-        ]
-        for table in doc.tables:
-            for i, row in enumerate(table.rows):
-                for cell in row.cells:
-                    if '{{positionen}}' in cell.text:
-                        cell.text = ''
-                        for item in muster_positionen:
-                            new_row = table.add_row()
-                            cells = new_row.cells
-                            if len(cells) >= 5:
-                                cells[0].text = str(item['position'])
-                                cells[1].text = item['description']
-                                cells[2].text = str(item['quantity'])
-                                cells[3].text = item['unit']
-                                cells[4].text = f"{item['price']:.2f} €"
-                                if len(cells) >= 6:
-                                    cells[5].text = f"{item['total']:.2f} €"
+    # Positionen einfügen (falls die Vorlage einen {{positionen}}-Marker hat)
+    muster_positionen = [
+        {'position': 1, 'description': 'Power Apps Entwicklung', 'quantity': 10, 'unit': 'Stunde(n)', 'price': 85.00, 'total': 850.00},
+        {'position': 2, 'description': 'Datenbank-Design und Einrichtung', 'quantity': 1, 'unit': 'Pauschale', 'price': 500.00, 'total': 500.00},
+        {'position': 3, 'description': 'Monatliche Wartung & Support', 'quantity': 3, 'unit': 'pro Monat', 'price': 500.00, 'total': 1500.00},
+    ]
+    fill_positions(doc, muster_positionen)
 
     output_path = os.path.join(OUTPUT_FOLDER, output_name)
     doc.save(output_path)
