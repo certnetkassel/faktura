@@ -44,7 +44,11 @@
     <code style="font-size:13px">{% raw %}{{firma}} {{inhaber}} {{firma_strasse}} {{firma_plz}} {{firma_stadt}} {{firma_telefon}} {{firma_email}} {{steuernummer}} {{bank}} {{iban}} {{bic}} {{kleinunternehmer}}{% endraw %}</code>
 
     <h3 style="margin:16px 0 8px">Kundendaten (alle Vorlagen)</h3>
-    <code style="font-size:13px">{% raw %}{{kunde_firma}} {{kunde_anrede}} {{kunde_vorname}} {{kunde_nachname}} {{kunde_strasse}} {{kunde_plz}} {{kunde_stadt}}{% endraw %}</code>
+    <code style="font-size:13px">{% raw %}{{kunde_firma}} {{kunde_anrede}} {{kunde_vorname}} {{kunde_nachname}} {{kunde_strasse}} {{kunde_plz}} {{kunde_stadt}} {{kunde_nr}}{% endraw %}</code>
+
+    <h3 style="margin:16px 0 8px">Logo (alle Vorlagen)</h3>
+    <code style="font-size:13px">{% raw %}{{logo}}{% endraw %}</code>
+    <p style="margin:6px 0 0;font-size:13px;opacity:.75">Wird durch das in den Einstellungen hinterlegte Logo als Bild ersetzt (Breite 4&nbsp;cm, Seitenverhältnis bleibt erhalten). Funktioniert auch in Kopf-/Fußzeile. Ohne hinterlegtes Logo wird der Platzhalter entfernt.</p>
 
     <h3 style="margin:16px 0 8px">Rechnung</h3>
     <code style="font-size:13px">{% raw %}{{rechnung_nr}} {{rechnung_datum}} {{faellig_datum}} {{gesamtbetrag}} {{notizen}} {{positionen}}{% endraw %}</code>
