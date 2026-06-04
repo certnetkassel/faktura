@@ -40,27 +40,109 @@
 <div class="card" style="margin-top:20px">
   <div class="card-header"><h2>Verfügbare Platzhalter</h2></div>
   <div style="padding:16px">
-    <h3 style="margin:0 0 8px">Firmendaten (alle Vorlagen)</h3>
-    <code style="font-size:13px">{% raw %}{{firma}} {{inhaber}} {{firma_strasse}} {{firma_plz}} {{firma_stadt}} {{firma_telefon}} {{firma_email}} {{steuernummer}} {{bank}} {{iban}} {{bic}} {{kleinunternehmer}}{% endraw %}</code>
+    <p style="margin:0 0 16px;font-size:13px;opacity:.8">Schreibe diese Bausteine an die gewünschte Stelle einer Word-Vorlage. Beim Erzeugen eines Belegs ersetzt die App jeden Platzhalter automatisch durch den echten Wert.</p>
+    {% raw %}
+    <style>
+      .ph-table td{padding:5px 12px;vertical-align:top}
+      .ph-table td.ph{white-space:nowrap;width:200px}
+      .ph-table code{font-size:13px}
+    </style>
 
-    <h3 style="margin:16px 0 8px">Kundendaten (alle Vorlagen)</h3>
-    <code style="font-size:13px">{% raw %}{{kunde_firma}} {{kunde_anrede}} {{kunde_vorname}} {{kunde_nachname}} {{kunde_strasse}} {{kunde_plz}} {{kunde_stadt}} {{kunde_nr}}{% endraw %}</code>
+    <h3 style="margin:0 0 8px">Firmendaten <span style="opacity:.6;font-weight:400">(alle Vorlagen)</span></h3>
+    <div class="table-wrap"><table class="ph-table">
+      <thead><tr><th>Platzhalter</th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr><td class="ph"><code>{{firma}}</code></td><td>Firmenname</td></tr>
+        <tr><td class="ph"><code>{{inhaber}}</code></td><td>Inhaber / Name</td></tr>
+        <tr><td class="ph"><code>{{firma_strasse}}</code></td><td>Straße &amp; Hausnummer</td></tr>
+        <tr><td class="ph"><code>{{firma_plz}}</code></td><td>Postleitzahl</td></tr>
+        <tr><td class="ph"><code>{{firma_stadt}}</code></td><td>Ort</td></tr>
+        <tr><td class="ph"><code>{{firma_telefon}}</code></td><td>Telefonnummer</td></tr>
+        <tr><td class="ph"><code>{{firma_email}}</code></td><td>E-Mail-Adresse</td></tr>
+        <tr><td class="ph"><code>{{steuernummer}}</code></td><td>Steuernummer</td></tr>
+        <tr><td class="ph"><code>{{bank}}</code></td><td>Name der Bank</td></tr>
+        <tr><td class="ph"><code>{{iban}}</code></td><td>IBAN</td></tr>
+        <tr><td class="ph"><code>{{bic}}</code></td><td>BIC</td></tr>
+        <tr><td class="ph"><code>{{kleinunternehmer}}</code></td><td>Kleinunternehmer-Hinweis (§19 UStG)</td></tr>
+      </tbody>
+    </table></div>
 
-    <h3 style="margin:16px 0 8px">Logo (alle Vorlagen)</h3>
-    <code style="font-size:13px">{% raw %}{{logo}}{% endraw %}</code>
-    <p style="margin:6px 0 0;font-size:13px;opacity:.75">Wird durch das in den Einstellungen hinterlegte Logo als Bild ersetzt (Breite 4&nbsp;cm, Seitenverhältnis bleibt erhalten). Funktioniert auch in Kopf-/Fußzeile. Ohne hinterlegtes Logo wird der Platzhalter entfernt.</p>
+    <h3 style="margin:16px 0 8px">Kundendaten <span style="opacity:.6;font-weight:400">(alle Vorlagen)</span></h3>
+    <div class="table-wrap"><table class="ph-table">
+      <thead><tr><th>Platzhalter</th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr><td class="ph"><code>{{kunde_firma}}</code></td><td>Firma des Kunden</td></tr>
+        <tr><td class="ph"><code>{{kunde_anrede}}</code></td><td>Anrede (Herr / Frau)</td></tr>
+        <tr><td class="ph"><code>{{kunde_vorname}}</code></td><td>Vorname</td></tr>
+        <tr><td class="ph"><code>{{kunde_nachname}}</code></td><td>Nachname</td></tr>
+        <tr><td class="ph"><code>{{kunde_strasse}}</code></td><td>Straße &amp; Hausnummer</td></tr>
+        <tr><td class="ph"><code>{{kunde_plz}}</code></td><td>Postleitzahl</td></tr>
+        <tr><td class="ph"><code>{{kunde_stadt}}</code></td><td>Ort</td></tr>
+        <tr><td class="ph"><code>{{kunde_nr}}</code></td><td>Kundennummer (z. B. K-0001)</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3 style="margin:16px 0 8px">Logo <span style="opacity:.6;font-weight:400">(alle Vorlagen)</span></h3>
+    <div class="table-wrap"><table class="ph-table">
+      <thead><tr><th>Platzhalter</th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr><td class="ph"><code>{{logo}}</code></td><td>Firmenlogo als Bild (4&nbsp;cm breit, Seitenverhältnis bleibt erhalten). Funktioniert auch in Kopf-/Fußzeile. Ohne hinterlegtes Logo wird der Platzhalter entfernt.</td></tr>
+      </tbody>
+    </table></div>
 
     <h3 style="margin:16px 0 8px">Rechnung</h3>
-    <code style="font-size:13px">{% raw %}{{rechnung_nr}} {{rechnung_datum}} {{faellig_datum}} {{gesamtbetrag}} {{notizen}} {{positionen}}{% endraw %}</code>
+    <div class="table-wrap"><table class="ph-table">
+      <thead><tr><th>Platzhalter</th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr><td class="ph"><code>{{rechnung_nr}}</code></td><td>Rechnungsnummer</td></tr>
+        <tr><td class="ph"><code>{{rechnung_datum}}</code></td><td>Rechnungsdatum</td></tr>
+        <tr><td class="ph"><code>{{faellig_datum}}</code></td><td>Fälligkeitsdatum</td></tr>
+        <tr><td class="ph"><code>{{gesamtbetrag}}</code></td><td>Gesamtbetrag</td></tr>
+        <tr><td class="ph"><code>{{notizen}}</code></td><td>Notizen / Bemerkungen</td></tr>
+        <tr><td class="ph"><code>{{positionen}}</code></td><td>Tabelle der Positionen (in eine Tabellenzelle setzen — wird durch die Positionszeilen ersetzt)</td></tr>
+      </tbody>
+    </table></div>
 
     <h3 style="margin:16px 0 8px">Angebot</h3>
-    <code style="font-size:13px">{% raw %}{{angebot_nr}} {{angebot_datum}} {{gueltig_bis}} {{gesamtbetrag}} {{notizen}} {{positionen}}{% endraw %}</code>
+    <div class="table-wrap"><table class="ph-table">
+      <thead><tr><th>Platzhalter</th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr><td class="ph"><code>{{angebot_nr}}</code></td><td>Angebotsnummer</td></tr>
+        <tr><td class="ph"><code>{{angebot_datum}}</code></td><td>Angebotsdatum</td></tr>
+        <tr><td class="ph"><code>{{gueltig_bis}}</code></td><td>Gültig bis</td></tr>
+        <tr><td class="ph"><code>{{gesamtbetrag}}</code></td><td>Gesamtbetrag</td></tr>
+        <tr><td class="ph"><code>{{notizen}}</code></td><td>Notizen / Bemerkungen</td></tr>
+        <tr><td class="ph"><code>{{positionen}}</code></td><td>Tabelle der Positionen</td></tr>
+      </tbody>
+    </table></div>
 
     <h3 style="margin:16px 0 8px">Gutschrift</h3>
-    <code style="font-size:13px">{% raw %}{{gutschrift_nr}} {{gutschrift_datum}} {{gesamtbetrag}} {{notizen}} {{positionen}}{% endraw %}</code>
+    <div class="table-wrap"><table class="ph-table">
+      <thead><tr><th>Platzhalter</th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr><td class="ph"><code>{{gutschrift_nr}}</code></td><td>Gutschriftnummer</td></tr>
+        <tr><td class="ph"><code>{{gutschrift_datum}}</code></td><td>Gutschriftdatum</td></tr>
+        <tr><td class="ph"><code>{{gesamtbetrag}}</code></td><td>Gesamtbetrag</td></tr>
+        <tr><td class="ph"><code>{{notizen}}</code></td><td>Notizen / Bemerkungen</td></tr>
+        <tr><td class="ph"><code>{{positionen}}</code></td><td>Tabelle der Positionen</td></tr>
+      </tbody>
+    </table></div>
 
     <h3 style="margin:16px 0 8px">Mahnung</h3>
-    <code style="font-size:13px">{% raw %}{{mahnung_stufe}} {{mahnung_datum}} {{mahnung_frist}} {{mahngebuehr}} {{rechnung_nr}} {{rechnung_datum}} {{rechnung_betrag}} {{notizen}}{% endraw %}</code>
+    <div class="table-wrap"><table class="ph-table">
+      <thead><tr><th>Platzhalter</th><th>Bedeutung</th></tr></thead>
+      <tbody>
+        <tr><td class="ph"><code>{{mahnung_stufe}}</code></td><td>Mahnstufe (1, 2, 3 …)</td></tr>
+        <tr><td class="ph"><code>{{mahnung_datum}}</code></td><td>Datum der Mahnung</td></tr>
+        <tr><td class="ph"><code>{{mahnung_frist}}</code></td><td>Neue Zahlungsfrist</td></tr>
+        <tr><td class="ph"><code>{{mahngebuehr}}</code></td><td>Mahngebühr</td></tr>
+        <tr><td class="ph"><code>{{rechnung_nr}}</code></td><td>Nummer der gemahnten Rechnung</td></tr>
+        <tr><td class="ph"><code>{{rechnung_datum}}</code></td><td>Datum dieser Rechnung</td></tr>
+        <tr><td class="ph"><code>{{rechnung_betrag}}</code></td><td>Betrag dieser Rechnung</td></tr>
+        <tr><td class="ph"><code>{{notizen}}</code></td><td>Notizen / Bemerkungen</td></tr>
+      </tbody>
+    </table></div>
+    {% endraw %}
   </div>
 </div>
 {% endblock %}
