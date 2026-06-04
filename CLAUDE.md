@@ -150,7 +150,9 @@ Word-Vorlagen liegen in `/opt/faktura/vorlagen/`. Die App ersetzt Platzhalter in
 ### Platzhalter (alle Vorlagen)
 **Firma:** {{firma}}, {{inhaber}}, {{firma_strasse}}, {{firma_plz}}, {{firma_stadt}}, {{firma_telefon}}, {{firma_email}}, {{steuernummer}}, {{bank}}, {{iban}}, {{bic}}, {{kleinunternehmer}}
 
-**Kunde:** {{kunde_firma}}, {{kunde_anrede}}, {{kunde_vorname}}, {{kunde_nachname}}, {{kunde_strasse}}, {{kunde_plz}}, {{kunde_stadt}}
+**Kunde:** {{kunde_firma}}, {{kunde_anrede}}, {{kunde_vorname}}, {{kunde_nachname}}, {{kunde_strasse}}, {{kunde_plz}}, {{kunde_stadt}}, {{kunde_nr}}
+
+**Logo:** {{logo}} (Bild-Platzhalter, siehe unten)
 
 ### Platzhalter (dokumentspezifisch)
 - **Rechnung:** {{rechnung_nr}}, {{rechnung_datum}}, {{faellig_datum}}, {{gesamtbetrag}}, {{notizen}}, {{positionen}}
@@ -160,6 +162,9 @@ Word-Vorlagen liegen in `/opt/faktura/vorlagen/`. Die App ersetzt Platzhalter in
 
 ### {{positionen}}-Marker
 In einer Tabellenzelle platziert. Die App sucht nach diesem Marker, löscht ihn und fügt dynamisch Zeilen mit Pos/Bezeichnung/Menge/Einheit/Einzelpreis/Gesamt hinzu.
+
+### {{logo}}-Marker (Bild)
+Wird durch das in den Einstellungen hinterlegte Logo als Inline-Bild ersetzt (python-docx `run.add_picture`). Verwendet wird die helle Variante (`logo_light`, für weißen Hintergrund), Fallback `logo_dark`. Standardbreite 4 cm (`LOGO_WIDTH_CM` in app.py), Seitenverhältnis bleibt erhalten. Funktioniert in Body, Tabellen und Kopf-/Fußzeilen, auch wenn Word den Marker über mehrere Runs zerrissen hat. Ist kein Logo hinterlegt, wird der Marker-Text einfach entfernt (kein sichtbares `{{logo}}`).
 
 ## Authentifizierung
 
@@ -201,4 +206,3 @@ Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften �
 
 - DATEV-Export
 - Wiederkehrende Rechnungen
-- Kundennummer-Platzhalter ({{kunde_nr}}) im Dokument-Generator hinzufügen (fehlt aktuell in der generate_doc-Funktion in app.py)

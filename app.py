@@ -113,6 +113,67 @@ def replace_placeholders(doc, replacements):
             _replace_in_tables(hf.tables, replacements)
 
 
+LOGO_PLACEHOLDER = '{{logo}}'
+LOGO_WIDTH_CM = 4.0  # Breite des eingefügten Logos im Dokument
+
+
+def _insert_logo_in_paragraph(paragraph, image_path, width):
+    """Ersetzt den Marker {{logo}} in einem Absatz durch ein Inline-Bild.
+    Funktioniert auch run-übergreifend (Word zerreißt Marker beim Bearbeiten).
+    Reihenfolge Text-vor-Marker / Bild / Text-nach-Marker bleibt erhalten."""
+    if LOGO_PLACEHOLDER not in paragraph.text:
+        return
+    if not paragraph.runs:
+        return
+    before, _, after = paragraph.text.partition(LOGO_PLACEHOLDER)
+    run = paragraph.runs[0]
+    run.text = before
+    for r in paragraph.runs[1:]:
+        r.text = ''
+    run.add_picture(image_path, width=width)
+    if after:
+        run.add_text(after)
+
+
+def _insert_logo_in_tables(tables, image_path, width):
+    for table in tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    _insert_logo_in_paragraph(paragraph, image_path, width)
+                if cell.tables:
+                    _insert_logo_in_tables(cell.tables, image_path, width)
+
+
+def insert_logo(doc, image_path, width_cm=LOGO_WIDTH_CM):
+    """Fügt das Logo überall dort ein, wo der Marker {{logo}} steht –
+    Body, Tabellen sowie Kopf-/Fußzeilen aller Abschnitte."""
+    from docx.shared import Cm
+    width = Cm(width_cm)
+    for paragraph in doc.paragraphs:
+        _insert_logo_in_paragraph(paragraph, image_path, width)
+    _insert_logo_in_tables(doc.tables, image_path, width)
+    for section in doc.sections:
+        for hf in (section.header, section.first_page_header, section.even_page_header,
+                   section.footer, section.first_page_footer, section.even_page_footer):
+            for paragraph in hf.paragraphs:
+                _insert_logo_in_paragraph(paragraph, image_path, width)
+            _insert_logo_in_tables(hf.tables, image_path, width)
+
+
+def get_logo_path(s, prefer='light'):
+    """Liefert den Dateipfad des hinterlegten Logos (Dokumente: helle Variante
+    für weißen Hintergrund), oder None wenn keins existiert."""
+    order = ['logo_light', 'logo_dark'] if prefer == 'light' else ['logo_dark', 'logo_light']
+    for field in order:
+        name = s[field] if s[field] else ''
+        if name:
+            path = os.path.join(LOGO_FOLDER, name)
+            if os.path.exists(path):
+                return path
+    return None
+
+
 @app.context_processor
 def inject_settings():
     """Make settings available in all templates (for logo display)."""
@@ -952,6 +1013,14 @@ def generate_doc(doc_type, doc_id):
     # Platzhalter robust ersetzen (Body, Tabellen, Kopf-/Fußzeilen, run-übergreifend)
     replace_placeholders(doc, replacements)
 
+    # Logo einfügen, wo {{logo}}-Marker steht (helle Variante für weißen Hintergrund);
+    # ohne hinterlegtes Logo Marker entfernen, damit kein {{logo}}-Text stehen bleibt
+    logo_path = get_logo_path(s, prefer='light')
+    if logo_path:
+        insert_logo(doc, logo_path)
+    else:
+        replace_placeholders(doc, {LOGO_PLACEHOLDER: ''})
+
     # Handle items table — look for {{positionen}} marker
     for table in doc.tables:
         for i, row in enumerate(table.rows):
@@ -1174,6 +1243,14 @@ def vorlage_muster(doc_type):
 
     # Platzhalter robust ersetzen (Body, Tabellen, Kopf-/Fußzeilen, run-übergreifend)
     replace_placeholders(doc, beispiel)
+
+    # Logo einfügen, wo {{logo}}-Marker steht (helle Variante für weißen Hintergrund);
+    # ohne hinterlegtes Logo Marker entfernen, damit kein {{logo}}-Text stehen bleibt
+    logo_path = get_logo_path(get_settings(), prefer='light')
+    if logo_path:
+        insert_logo(doc, logo_path)
+    else:
+        replace_placeholders(doc, {LOGO_PLACEHOLDER: ''})
 
     # Positionen einfügen (falls vorhanden)
     if doc_type in ['rechnung', 'angebot', 'gutschrift']:
