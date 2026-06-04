@@ -1,242 +1,204 @@
-# CLAUDE.md – TenantPlus
+# Faktura (Micro-Fakt 1.0)
 
-## Projektbeschreibung
-TenantPlus ist eine Web-App zur Verwaltung von Microsoft 365-Tenants.
-Betreiber: CERTNET GmbH, Kassel (Dirk Hildebrand).
-Einsatz: Intern fuer Dienstleistungen beim Kunden, spaeter als verkaufbares Produkt.
+Rechnungssystem für das Einzelunternehmen "Dirk Hildebrand - App Entwicklung" als Kleinunternehmer (§19 UStG).
 
-Die App kombiniert:
-- Microsoft Graph API fuer Datenzugriff und Verwaltungsaktionen
-- Eine PowerShell-Skript-Bibliothek: Skripte werden parametrisiert und als .ps1-Datei zum Download bereitgestellt. Ausfuehrung erfolgt lokal durch den Administrator.
+## Sprache
 
----
+Alle Antworten, Erklärungen, Commit-Messages und Code-Kommentare auf Deutsch. Code-Änderungen IMMER sofort committen und pushen.
 
 ## Tech-Stack
-- **Backend:** Node.js / Express
-- **Datenbank:** PostgreSQL (Datenbankname: tenantplus)
-- **Frontend:** HTML / CSS / JavaScript (Vanilla) – kein Framework
-- **MS 365:** Microsoft Graph API, Client Credentials Flow, pro Tenant eigene App Registration
-- **PowerShell:** Skript-Vorlagen unter /scripts/, parametrisiert, Download als .ps1
-- **E-Mail:** IONOS SMTP (nodemailer)
-- **Deployment:** Coolify Auto-Deploy, Docker, GitHub Push zu certnetkassel/tenantplus
-- **Server:** 82.165.190.147, Rocky Linux 9, tenantplus.certnet.eu
-- **Lokaler Pfad:** P:\Projekte\TenantPlus
 
----
+- **Backend:** Python 3 / Flask
+- **Datenbank:** SQLite (`faktura.db` im Projektverzeichnis)
+- **Templating:** Jinja2
+- **CSS:** Eigenes CSS mit Dark/Light Theme (`static/style.css`)
+- **Dokumentgenerierung:** python-docx (Word-Vorlagen mit Platzhaltern)
+- **E-Mail:** SMTP (smtplib)
+- **Webserver:** Gunicorn (2 Worker) hinter nginx
+- **Prozessmanagement:** systemd
 
-## Datenbankschema
-```sql
--- Tenants
-CREATE TABLE tenants (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    domain VARCHAR(255),
-    admin_email VARCHAR(255),
-    admin_name VARCHAR(255),
-    notes TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
+## Deployment
 
--- Azure App Registrations pro Tenant
-CREATE TABLE tenant_app_registrations (
-    id SERIAL PRIMARY KEY,
-    tenant_id INTEGER REFERENCES tenants(id),
-    client_id VARCHAR(255),
-    client_secret TEXT,
-    tenant_id_azure VARCHAR(255),
-    created_at TIMESTAMP DEFAULT NOW()
-);
+- **Server:** IONOS VPS 82.165.29.152 (Ubuntu)
+- **App-Pfad:** `/opt/faktura`
+- **User:** `www-data`
+- **Python venv:** `/opt/faktura/venv`
+- **Service:** `faktura.service` (`systemctl restart faktura`)
+- **SSL:** Let's Encrypt
+- **URL:** https://faktura.dirkhildebrand.de
+- **Domain:** dirkhildebrand.de (alter Server, 82.165.29.152)
 
--- Benutzer
-CREATE TABLE users (
-    id SERIAL PRIMARY KEY,
-    tenant_id INTEGER REFERENCES tenants(id),
-    display_name VARCHAR(255),
-    upn VARCHAR(255),
-    private_email VARCHAR(255),
-    azure_object_id VARCHAR(255),
-    created_at TIMESTAMP DEFAULT NOW(),
-    delete_reminder_date TIMESTAMP,
-    deleted_at TIMESTAMP
-);
+### SSH-Zugang
 
--- Gruppen
-CREATE TABLE groups (
-    id SERIAL PRIMARY KEY,
-    tenant_id INTEGER REFERENCES tenants(id),
-    name VARCHAR(255),
-    azure_object_id VARCHAR(255)
-);
-
--- Lizenzen
-CREATE TABLE licenses (
-    id SERIAL PRIMARY KEY,
-    tenant_id INTEGER REFERENCES tenants(id),
-    sku_id VARCHAR(255),
-    sku_part_number VARCHAR(255),
-    total INTEGER,
-    consumed INTEGER,
-    last_synced TIMESTAMP
-);
-
--- MS Teams
-CREATE TABLE teams (
-    id SERIAL PRIMARY KEY,
-    tenant_id INTEGER REFERENCES tenants(id),
-    name VARCHAR(255),
-    azure_object_id VARCHAR(255),
-    template VARCHAR(255)
-);
-
--- Kanaele
-CREATE TABLE channels (
-    id SERIAL PRIMARY KEY,
-    team_id INTEGER REFERENCES teams(id),
-    name VARCHAR(255),
-    azure_object_id VARCHAR(255)
-);
-
--- Erinnerungen
-CREATE TABLE reminders (
-    id SERIAL PRIMARY KEY,
-    user_id INTEGER REFERENCES users(id),
-    reminder_date TIMESTAMP,
-    status VARCHAR(50) DEFAULT 'pending',
-    extension_months INTEGER,
-    created_at TIMESTAMP DEFAULT NOW()
-);
-
--- PowerShell-Skripte
-CREATE TABLE powershell_scripts (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255),
-    description TEXT,
-    category VARCHAR(100),
-    template TEXT,
-    created_at TIMESTAMP DEFAULT NOW()
-);
+```
+Host: 82.165.29.152
+User: root
+Key: C:\Users\Dirk Mini-PC\OneDrive - CERTNET GmbH\Claude\SSH-Keys\id_ed25519
 ```
 
----
+### Deploy-Workflow
+
+1. Lokal ändern und committen/pushen
+2. Per SSH auf Server: `cd /opt/faktura && git pull`
+3. `systemctl restart faktura`
+
+Alternativ: Dateien per SCP hochladen:
+```bash
+scp -i <key> <datei> root@82.165.29.152:/opt/faktura/<datei>
+```
+
+## GitHub
+
+- **Repository:** https://github.com/certnetkassel/faktura (private)
+- **Organisation:** certnetkassel
+- **Branch:** main
+
+## Lokaler Projektpfad
+
+```
+C:\Users\Dirk Mini-PC\OneDrive - CERTNET GmbH\Claude\faktura-app
+```
+
+WICHTIG: Git-Repos NIEMALS auf rclone-gemounteten Laufwerken (P:\) betreiben.
 
 ## Projektstruktur
+
 ```
-/
-├── src/
-│   ├── routes/             # Express-Routen (eine Datei pro Modul)
-│   ├── db/                 # Datenbankabfragen (eine Datei pro Modul)
-│   ├── middleware/         # Auth, Session, Logging
-│   └── graph/              # Graph API Hilfsfunktionen (token.js, users.js etc.)
-├── public/
-│   ├── css/                # Stylesheets
-│   └── js/                 # Client-seitiges JavaScript
-├── views/                  # HTML-Templates (EJS oder statische HTML)
-├── scripts/                # PowerShell-Skript-Vorlagen (.ps1)
-├── .env                    # Nicht in Git
-├── .gitignore
-├── package.json
-├── server.js
-└── README.md
+/opt/faktura/
+├── app.py              # Hauptanwendung (Flask-Routes, alle Endpoints)
+├── config.py           # Konfiguration (SECRET_KEY, Pfade)
+├── database.py         # DB-Schema und Initialisierung
+├── create_templates.py # Generiert Beispiel-Vorlagen (python-docx)
+├── requirements.txt    # Python-Abhängigkeiten
+├── faktura.db          # SQLite-Datenbank (NICHT im Git)
+├── static/
+│   ├── style.css       # Komplettes CSS (Dark/Light Theme)
+│   └── logos/          # Logo-Dateien (Dark + Light Variante)
+├── templates/          # Jinja2-Templates
+│   ├── base.html       # Layout mit Sidebar-Navigation
+│   ├── login.html      # Login-Seite (Micro-Fakt 1.0 Branding)
+│   ├── dashboard.html  # Dashboard mit KPIs
+│   ├── customers.html  # Kundenliste
+│   ├── customer_form.html
+│   ├── articles.html   # Artikelliste
+│   ├── article_form.html
+│   ├── invoices.html   # Rechnungsliste
+│   ├── invoice_form.html
+│   ├── offers.html     # Angebotsliste
+│   ├── offer_form.html
+│   ├── credits.html    # Gutschriftenliste
+│   ├── credit_form.html
+│   ├── reminders.html  # Mahnungsliste
+│   ├── reminder_form.html
+│   ├── settings.html   # Einstellungen
+│   └── vorlagen.html   # Vorlagenverwaltung
+├── vorlagen/           # Word-Vorlagen mit Platzhaltern
+│   ├── vorlage_rechnung.docx
+│   ├── vorlage_angebot.docx
+│   ├── vorlage_gutschrift.docx
+│   └── vorlage_mahnung.docx
+└── output/             # Generierte Dokumente (temporär)
 ```
 
----
+## Datenbank-Schema (SQLite)
 
-## Umgebungsvariablen (.env)
-```
-PORT=3000
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=tenantplus
-DB_USER=
-DB_PASS=
-SESSION_SECRET=
-SMTP_HOST=smtp.ionos.de
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASS=
-```
+### settings (id=1, Singleton)
+company_name, owner_name, street, zip, city, phone, email, tax_number, bank_name, iban, bic, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, password_hash, kleinunternehmer_text, invoice_prefix, offer_prefix, credit_prefix, next_invoice_nr, next_offer_nr, next_credit_nr, logo_dark, logo_light
 
----
+### customers
+id, customer_nr (Text, z.B. K-0001), company, salutation, first_name, last_name, street, zip, city, email, phone, notes
 
-## Graph API
-- Authentifizierung: Client Credentials Flow (kein Benutzer-Login noetig)
-- Token-Verwaltung: pro Tenant, gecacht bis Ablauf
-- Wichtige Endpunkte:
-  - GET /users – Benutzer auflisten
-  - POST /users – Benutzer anlegen
-  - GET /subscribedSkus – Lizenzen auslesen
-  - POST /groups – Gruppe anlegen
-  - POST /teams – Team anlegen
-  - POST /teams/{id}/channels – Kanal anlegen
-- Admin Consent: muss einmalig pro Tenant vom dortigen Admin erteilt werden
+### articles
+id, article_nr (Text, z.B. A-0001), name, description, unit (Stunde/Pauschale/pro Monat), price
 
----
+### invoices
+id, invoice_nr (Text, z.B. RE-2604001), customer_id (FK→customers), offer_id (FK→offers, optional), date, due_date, status (Entwurf/Gesendet/Bezahlt/Überfällig/Storniert), notes, total, created_at
 
-## PowerShell-Skripte
+### invoice_items
+id, invoice_id (FK→invoices), position (int), description, quantity, unit, price, total
 
-### Konzept
-PowerShell laeuft NICHT auf dem Server (Rocky Linux 9). Die App generiert nur die Skript-Datei.
-Ausfuehrung erfolgt ausschliesslich lokal auf dem Windows-PC des Administrators.
+### offers
+id, offer_nr (Text, z.B. AN-2604001), customer_id (FK→customers), date, valid_until, status (Entwurf/Gesendet/Angenommen/Abgelehnt), notes, total, created_at
 
-### Ablauf
-1. Administrator waehlt ein Skript in der App aus
-2. Gibt die benoetigten Parameter ein (z.B. Tenant, Benutzername, Lizenz)
-3. App setzt Platzhalter in der Vorlage ein und stellt .ps1-Datei zum Download bereit
-4. Administrator laedt die Datei herunter
-5. Administrator fuehrt die Datei lokal in PowerShell aus – dort wo er Global Admin ist
+### offer_items
+id, offer_id (FK→offers), position, description, quantity, unit, price, total
 
-### Vorteile dieses Konzepts
-- Keine PowerShell-Abhaengigkeit auf dem Server
-- Keine Admin-Credentials muessen auf dem Server gespeichert werden
-- Administrator sieht und prueft das Skript vor der Ausfuehrung
-- Funktioniert mit jedem Tenant wo der Administrator Zugang hat
+### credits
+id, credit_nr (Text, z.B. GU-2604001), customer_id (FK→customers), invoice_id (FK→invoices, optional), date, notes, total, created_at
 
-### Technische Umsetzung
-- Vorlagen liegen unter /scripts/ als .ps1-Dateien mit Platzhaltern (z.B. {{UPN}}, {{TENANT_DOMAIN}})
-- Server-Route liest Vorlage, ersetzt Platzhalter per String-Replace, sendet Datei als Download
-- Content-Type: application/octet-stream, Dateiname: [skriptname]-[datum].ps1
-- Kategorien: Benutzer, Lizenzen, Teams, Bereinigung
+### credit_items
+id, credit_id (FK→credits), position, description, quantity, unit, price, total
 
----
+### reminders
+id, invoice_id (FK→invoices), level (int, Mahnstufe), date, due_date, fee, notes
 
-## Arbeitsanweisungen fuer Claude Code
+### email_log
+id, doc_type, doc_id, recipient, subject, sent_at
 
-### Sprache
-- Alle Antworten, Erklaerungen und Commit-Messages auf Deutsch
-- Kommentare im Code auf Deutsch
+## Belegnummer-Format
 
-### Code
-- Immer vollstaendigen Code liefern – keine Snippets, keine Diff-Auszuege
-- Nach jeder Aenderung sofort committen und pushen
-- Commit-Messages kurz und auf Deutsch (z.B. "Tenant-CRUD hinzugefuegt")
+`PREFIX-YYMM###` (z.B. RE-2604001 = Rechnung, April 2026, lfd. Nr. 1)
+- Rechnung: RE-
+- Angebot: AN-
+- Gutschrift: GU-
+- Prefixe konfigurierbar in Settings
 
-### Stil
-- Express-Routen modular (eine Datei pro Modul unter src/routes/)
-- Datenbankabfragen unter src/db/ (keine SQL direkt in Routen)
-- Fehlerbehandlung mit try/catch in allen async-Funktionen
-- Keine node_modules in Git (.gitignore beachten)
-- .env nie in Git
+## Dokumentgenerierung
 
-### Datenbank
-- Kein ORM – reines SQL mit pg (node-postgres)
-- Verbindung ueber .env-Variablen
-- Credentials nie im Klartext im Code
+Word-Vorlagen liegen in `/opt/faktura/vorlagen/`. Die App ersetzt Platzhalter in doppelten geschweiften Klammern per python-docx:
 
-### Deployment
-- Coolify Auto-Deploy via GitHub Push
-- Nach Push laeuft npm install automatisch im Container
-- Kein manuelles Deployment noetig
+### Platzhalter (alle Vorlagen)
+**Firma:** {{firma}}, {{inhaber}}, {{firma_strasse}}, {{firma_plz}}, {{firma_stadt}}, {{firma_telefon}}, {{firma_email}}, {{steuernummer}}, {{bank}}, {{iban}}, {{bic}}, {{kleinunternehmer}}
 
----
+**Kunde:** {{kunde_firma}}, {{kunde_anrede}}, {{kunde_vorname}}, {{kunde_nachname}}, {{kunde_strasse}}, {{kunde_plz}}, {{kunde_stadt}}
 
-## Offene TODOs (Entwicklungsreihenfolge)
-1. Datenbankschema anlegen (Migration-Skript)
-2. server.js Grundgeruest mit Session und Middleware
-3. Tenant-Verwaltung (CRUD)
-4. Graph API Token-Verwaltung
-5. Benutzer anlegen und aus Excel importieren
-6. Gruppen und Lizenzzuweisung
-7. Teams und Kanaele
-8. PowerShell-Skript-Download
-9. E-Mail-Versand Zugangsdaten
-10. Erinnerungs-Cron-Job (5 Monate)
+### Platzhalter (dokumentspezifisch)
+- **Rechnung:** {{rechnung_nr}}, {{rechnung_datum}}, {{faellig_datum}}, {{gesamtbetrag}}, {{notizen}}, {{positionen}}
+- **Angebot:** {{angebot_nr}}, {{angebot_datum}}, {{gueltig_bis}}, {{gesamtbetrag}}, {{notizen}}, {{positionen}}
+- **Gutschrift:** {{gutschrift_nr}}, {{gutschrift_datum}}, {{gesamtbetrag}}, {{notizen}}, {{positionen}}
+- **Mahnung:** {{mahnung_stufe}}, {{mahnung_datum}}, {{mahnung_frist}}, {{mahngebuehr}}, {{rechnung_nr}}, {{rechnung_datum}}, {{rechnung_betrag}}, {{notizen}}
+
+### {{positionen}}-Marker
+In einer Tabellenzelle platziert. Die App sucht nach diesem Marker, löscht ihn und fügt dynamisch Zeilen mit Pos/Bezeichnung/Menge/Einheit/Einzelpreis/Gesamt hinzu.
+
+## Authentifizierung
+
+- Einfaches Passwort-Login (kein Benutzername, Single-User)
+- Passwort-Hash in settings.password_hash (werkzeug.security)
+- Session via Flask-Session (Cookie-basiert)
+- SECRET_KEY ist fest in config.py (NICHT os.urandom!)
+- Beim ersten Start wird das Passwort gesetzt
+
+## Navigation (Sidebar in base.html)
+
+Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften → Mahnungen → Vorlagen → Einstellungen
+
+## Features
+
+- Dashboard mit KPIs (Kunden, offene Rechnungen, überfällige, Monatsumsatz)
+- CRUD für Kunden, Artikel, Angebote, Rechnungen, Gutschriften
+- Status-Workflow: Entwurf → Gesendet → Bezahlt/Überfällig
+- Automatische Überfällig-Markierung bei abgelaufenem Fälligkeitsdatum
+- Angebot → Rechnung umwandeln (kopiert Positionen)
+- Mahnwesen (mehrstufig, mit Mahngebühr)
+- Word-Dokumentgenerierung aus Vorlagen
+- E-Mail-Versand (SMTP, mit Dokument als Anhang)
+- Vorlagenverwaltung (Upload, Download, Muster mit Beispieldaten)
+- Dark/Light Theme
+- Logo-Upload (Dark + Light Variante)
+- Responsive (mobile Sidebar mit Toggle)
+
+## Bekannte Hinweise
+
+- SQLite-Datenbank (faktura.db) ist NICHT im Git (.gitignore)
+- Output-Ordner (generierte Dokumente) ist NICHT im Git
+- venv und __pycache__ sind NICHT im Git
+- Gunicorn läuft mit 2 Workern — SECRET_KEY MUSS fest sein (nicht os.urandom)
+- Bei Änderungen an app.py oder config.py immer `systemctl restart faktura`
+- Bei Änderungen an Templates oder CSS reicht meist ein Browser-Refresh (Strg+Shift+R)
+
+## Offene Punkte / Geplante Erweiterungen
+
+- DATEV-Export
+- Wiederkehrende Rechnungen
+- Kundennummer-Platzhalter ({{kunde_nr}}) im Dokument-Generator hinzufügen (fehlt aktuell in der generate_doc-Funktion in app.py)
