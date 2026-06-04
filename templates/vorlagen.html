@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Vorlagen — Faktura{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>Dokumentvorlagen</h1>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Vorlage</th><th>Dateiname</th><th>Status</th><th></th></tr></thead>
+      <tbody>
+      {% for v in vorlagen %}
+      <tr>
+        <td>{{ v.label }}</td>
+        <td>{{ v.filename }}</td>
+        <td>
+          {% if v.exists %}
+            <span class="badge badge-green">Vorhanden</span>
+          {% else %}
+            <span class="badge badge-red">Fehlt</span>
+          {% endif %}
+        </td>
+        <td class="actions">
+          {% if v.exists %}
+            <a href="{{ url_for('vorlage_download', filename=v.filename) }}" class="btn-icon" title="Vorlage herunterladen">&#x2913;</a>
+            <a href="{{ url_for('vorlage_muster', doc_type=v.type) }}" class="btn-icon" title="Muster mit Beispieldaten">&#x1F441;&#xFE0E;</a>
+          {% endif %}
+          <form method="POST" action="{{ url_for('vorlage_upload') }}" enctype="multipart/form-data" style="display:inline-flex;align-items:center;gap:8px">
+            <input type="hidden" name="target" value="{{ v.filename }}">
+            <input type="file" name="file" accept=".docx" style="max-width:200px">
+            <button type="submit" class="btn-icon" title="Hochladen">&#x2912;</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+<div class="card" style="margin-top:20px">
+  <div class="card-header"><h2>Verfügbare Platzhalter</h2></div>
+  <div style="padding:16px">
+    <h3 style="margin:0 0 8px">Firmendaten (alle Vorlagen)</h3>
+    <code style="font-size:13px">{% raw %}{{firma}} {{inhaber}} {{firma_strasse}} {{firma_plz}} {{firma_stadt}} {{firma_telefon}} {{firma_email}} {{steuernummer}} {{bank}} {{iban}} {{bic}} {{kleinunternehmer}}{% endraw %}</code>
+
+    <h3 style="margin:16px 0 8px">Kundendaten (alle Vorlagen)</h3>
+    <code style="font-size:13px">{% raw %}{{kunde_firma}} {{kunde_anrede}} {{kunde_vorname}} {{kunde_nachname}} {{kunde_strasse}} {{kunde_plz}} {{kunde_stadt}}{% endraw %}</code>
+
+    <h3 style="margin:16px 0 8px">Rechnung</h3>
+    <code style="font-size:13px">{% raw %}{{rechnung_nr}} {{rechnung_datum}} {{faellig_datum}} {{gesamtbetrag}} {{notizen}} {{positionen}}{% endraw %}</code>
+
+    <h3 style="margin:16px 0 8px">Angebot</h3>
+    <code style="font-size:13px">{% raw %}{{angebot_nr}} {{angebot_datum}} {{gueltig_bis}} {{gesamtbetrag}} {{notizen}} {{positionen}}{% endraw %}</code>
+
+    <h3 style="margin:16px 0 8px">Gutschrift</h3>
+    <code style="font-size:13px">{% raw %}{{gutschrift_nr}} {{gutschrift_datum}} {{gesamtbetrag}} {{notizen}} {{positionen}}{% endraw %}</code>
+
+    <h3 style="margin:16px 0 8px">Mahnung</h3>
+    <code style="font-size:13px">{% raw %}{{mahnung_stufe}} {{mahnung_datum}} {{mahnung_frist}} {{mahngebuehr}} {{rechnung_nr}} {{rechnung_datum}} {{rechnung_betrag}} {{notizen}}{% endraw %}</code>
+  </div>
+</div>
+{% endblock %}

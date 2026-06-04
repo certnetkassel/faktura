@@ -1041,6 +1041,198 @@ def api_article(id):
 
 # ── Init & Run ──
 
+
+@app.route('/vorlagen/muster/<doc_type>')
+@login_required
+def vorlage_muster(doc_type):
+    try:
+        from docx import Document as DocxDocument
+    except ImportError:
+        flash('python-docx ist nicht installiert.', 'error')
+        return redirect(url_for('vorlagen'))
+
+    template_map = {
+        'rechnung': 'vorlage_rechnung.docx',
+        'angebot': 'vorlage_angebot.docx',
+        'gutschrift': 'vorlage_gutschrift.docx',
+        'mahnung': 'vorlage_mahnung.docx',
+    }
+    if doc_type not in template_map:
+        flash('Unbekannter Dokumenttyp.', 'error')
+        return redirect(url_for('vorlagen'))
+
+    template_file = os.path.join(UPLOAD_FOLDER, template_map[doc_type])
+    if not os.path.exists(template_file):
+        flash(f'Vorlage "{template_map[doc_type]}" nicht gefunden.', 'error')
+        return redirect(url_for('vorlagen'))
+
+    # Beispieldaten
+    beispiel = {
+        '{{firma}}': 'Dirk Hildebrand - App Entwicklung',
+        '{{inhaber}}': 'Dirk Hildebrand',
+        '{{firma_strasse}}': 'Hirschbergstr. 4',
+        '{{firma_plz}}': '34123',
+        '{{firma_stadt}}': 'Kassel',
+        '{{firma_telefon}}': '+49 1512 8225666',
+        '{{firma_email}}': 'dirk@dirkhildebrand.de',
+        '{{steuernummer}}': '026 123 45678',
+        '{{bank}}': 'Stadtsparkasse Grebenstein',
+        '{{iban}}': 'DE89 3704 0044 0532 0130 00',
+        '{{bic}}': 'COBADEFFXXX',
+        '{{kleinunternehmer}}': 'Gemäß §19 UStG wird keine Umsatzsteuer berechnet.',
+        '{{kunde_firma}}': 'Mustermann GmbH',
+        '{{kunde_anrede}}': 'Herr',
+        '{{kunde_vorname}}': 'Max',
+        '{{kunde_nachname}}': 'Mustermann',
+        '{{kunde_strasse}}': 'Beispielweg 42',
+        '{{kunde_plz}}': '34117',
+        '{{kunde_stadt}}': 'Kassel',
+        '{{kunde_nr}}': 'K-0001',
+        '{{notizen}}': '',
+    }
+
+    if doc_type == 'rechnung':
+        beispiel.update({
+            '{{rechnung_nr}}': 'RE-2604001',
+            '{{rechnung_datum}}': '10.04.2026',
+            '{{faellig_datum}}': '24.04.2026',
+            '{{gesamtbetrag}}': '2.850,00 €',
+        })
+        output_name = 'Muster_Rechnung.docx'
+    elif doc_type == 'angebot':
+        beispiel.update({
+            '{{angebot_nr}}': 'AN-2604001',
+            '{{angebot_datum}}': '10.04.2026',
+            '{{gueltig_bis}}': '10.05.2026',
+            '{{gesamtbetrag}}': '2.850,00 €',
+        })
+        output_name = 'Muster_Angebot.docx'
+    elif doc_type == 'gutschrift':
+        beispiel.update({
+            '{{gutschrift_nr}}': 'GU-2604001',
+            '{{gutschrift_datum}}': '10.04.2026',
+            '{{gesamtbetrag}}': '500,00 €',
+        })
+        output_name = 'Muster_Gutschrift.docx'
+    elif doc_type == 'mahnung':
+        beispiel.update({
+            '{{mahnung_stufe}}': '1',
+            '{{mahnung_datum}}': '10.04.2026',
+            '{{mahnung_frist}}': '17.04.2026',
+            '{{mahngebuehr}}': '5,00 €',
+            '{{rechnung_nr}}': 'RE-2603001',
+            '{{rechnung_datum}}': '01.03.2026',
+            '{{rechnung_betrag}}': '1.200,00 €',
+        })
+        output_name = 'Muster_Mahnung.docx'
+
+    doc = DocxDocument(template_file)
+
+    # Textfelder ersetzen
+    for paragraph in doc.paragraphs:
+        for key, value in beispiel.items():
+            if key in paragraph.text:
+                for run in paragraph.runs:
+                    if key in run.text:
+                        run.text = run.text.replace(key, value or '')
+
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                for paragraph in cell.paragraphs:
+                    for key, value in beispiel.items():
+                        if key in paragraph.text:
+                            for run in paragraph.runs:
+                                if key in run.text:
+                                    run.text = run.text.replace(key, value or '')
+
+    # Positionen einfügen (falls vorhanden)
+    if doc_type in ['rechnung', 'angebot', 'gutschrift']:
+        muster_positionen = [
+            {'position': 1, 'description': 'Power Apps Entwicklung', 'quantity': 10, 'unit': 'Stunde(n)', 'price': 85.00, 'total': 850.00},
+            {'position': 2, 'description': 'Datenbank-Design und Einrichtung', 'quantity': 1, 'unit': 'Pauschale', 'price': 500.00, 'total': 500.00},
+            {'position': 3, 'description': 'Monatliche Wartung & Support', 'quantity': 3, 'unit': 'pro Monat', 'price': 500.00, 'total': 1500.00},
+        ]
+        for table in doc.tables:
+            for i, row in enumerate(table.rows):
+                for cell in row.cells:
+                    if '{{positionen}}' in cell.text:
+                        cell.text = ''
+                        for item in muster_positionen:
+                            new_row = table.add_row()
+                            cells = new_row.cells
+                            if len(cells) >= 5:
+                                cells[0].text = str(item['position'])
+                                cells[1].text = item['description']
+                                cells[2].text = str(item['quantity'])
+                                cells[3].text = item['unit']
+                                cells[4].text = f"{item['price']:.2f} €"
+                                if len(cells) >= 6:
+                                    cells[5].text = f"{item['total']:.2f} €"
+
+    # Header/Footer ersetzen
+    for section in doc.sections:
+        for paragraph in section.header.paragraphs:
+            for key, value in beispiel.items():
+                if key in paragraph.text:
+                    for run in paragraph.runs:
+                        if key in run.text:
+                            run.text = run.text.replace(key, value or '')
+        for paragraph in section.footer.paragraphs:
+            for key, value in beispiel.items():
+                if key in paragraph.text:
+                    for run in paragraph.runs:
+                        if key in run.text:
+                            run.text = run.text.replace(key, value or '')
+
+    output_path = os.path.join(OUTPUT_FOLDER, output_name)
+    doc.save(output_path)
+    return send_file(output_path, as_attachment=True, download_name=output_name)
+
+# ── Vorlagen ──
+
+@app.route('/vorlagen')
+@login_required
+def vorlagen():
+    templates = [
+        {'label': 'Rechnung', 'filename': 'vorlage_rechnung.docx', 'type': 'rechnung'},
+        {'label': 'Angebot', 'filename': 'vorlage_angebot.docx', 'type': 'angebot'},
+        {'label': 'Gutschrift', 'filename': 'vorlage_gutschrift.docx', 'type': 'gutschrift'},
+        {'label': 'Mahnung', 'filename': 'vorlage_mahnung.docx', 'type': 'mahnung'},
+    ]
+    for t in templates:
+        t['exists'] = os.path.exists(os.path.join(UPLOAD_FOLDER, t['filename']))
+    return render_template('vorlagen.html', vorlagen=templates)
+
+
+@app.route('/vorlagen/download/<filename>')
+@login_required
+def vorlage_download(filename):
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    if os.path.exists(filepath):
+        return send_file(filepath, as_attachment=True, download_name=filename)
+    flash('Vorlage nicht gefunden.', 'error')
+    return redirect(url_for('vorlagen'))
+
+
+@app.route('/vorlagen/upload', methods=['POST'])
+@login_required
+def vorlage_upload():
+    target = request.form.get('target', '')
+    allowed = ['vorlage_rechnung.docx', 'vorlage_angebot.docx',
+               'vorlage_gutschrift.docx', 'vorlage_mahnung.docx']
+    if target not in allowed:
+        flash('Ungültiger Dateiname.', 'error')
+        return redirect(url_for('vorlagen'))
+    file = request.files.get('file')
+    if not file or not file.filename.endswith('.docx'):
+        flash('Bitte eine .docx-Datei auswählen.', 'error')
+        return redirect(url_for('vorlagen'))
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+    file.save(os.path.join(UPLOAD_FOLDER, target))
+    flash(f'Vorlage "{target}" hochgeladen.', 'success')
+    return redirect(url_for('vorlagen'))
+
 if __name__ == '__main__':
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)

@@ -72,7 +72,7 @@
 
 /* ── Logo ── */
 .sidebar-logo-img {
-  height: 35px;
+  height: 105px;
   object-fit: contain;
 }
 
@@ -80,7 +80,7 @@
   margin-bottom: 20px;
 }
 .login-logo img {
-  height: 50px;
+  height: 150px;
   object-fit: contain;
 }
 

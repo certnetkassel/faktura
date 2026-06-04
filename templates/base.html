@@ -46,6 +46,9 @@
         <li><a href="{{ url_for('reminders') }}" class="{% if request.endpoint in ['reminders','reminder_form'] %}active{% endif %}">
           <span class="nav-icon">&#9888;</span> Mahnungen
         </a></li>
+        <li><a href="{{ url_for('vorlagen') }}" class="{% if request.endpoint == 'vorlagen' %}active{% endif %}">
+          <span class="nav-icon">&#128196;&#xFE0E;</span> Vorlagen
+        </a></li>
         <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">
           <span class="nav-icon">&#9881;</span> Einstellungen
         </a></li>
