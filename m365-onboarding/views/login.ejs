@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Anmeldung – M365-Onboarding</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <main class="karte karte--schmal">
+    <h1>M365-Onboarding</h1>
+    <p class="hinweis">
+      Bitte melden Sie sich mit Ihrem Microsoft-365-Konto an, um neue Benutzer
+      anzulegen.
+    </p>
+
+    <% if (typeof fehler !== 'undefined' && fehler) { %>
+      <div class="meldung meldung--fehler"><%= fehler %></div>
+    <% } %>
+
+    <a class="btn btn--primaer btn--block" href="/auth/login">
+      Mit Microsoft 365 anmelden
+    </a>
+  </main>
+</body>
+</html>

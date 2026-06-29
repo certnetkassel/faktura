@@ -1,0 +1,194 @@
+/* public/css/app.css
+   Schlichtes, sauberes Styling für das M365-Onboarding-Tool. */
+
+:root {
+  --farbe-text: #1f2937;
+  --farbe-grau: #6b7280;
+  --farbe-rahmen: #d1d5db;
+  --farbe-primaer: #0067b8;       /* Microsoft-Blau */
+  --farbe-primaer-dunkel: #005296;
+  --farbe-hintergrund: #f3f4f6;
+  --farbe-karte: #ffffff;
+  --farbe-erfolg-bg: #ecfdf5;
+  --farbe-erfolg-text: #065f46;
+  --farbe-fehler-bg: #fef2f2;
+  --farbe-fehler-text: #991b1b;
+  --farbe-warnung-bg: #fffbeb;
+  --farbe-warnung-text: #92400e;
+  --radius: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", Arial, Helvetica, sans-serif;
+  color: var(--farbe-text);
+  background: var(--farbe-hintergrund);
+  line-height: 1.5;
+}
+
+/* Kopfzeile */
+.kopf {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  background: var(--farbe-karte);
+  border-bottom: 1px solid var(--farbe-rahmen);
+}
+
+.kopf__titel {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.kopf__rechts {
+  font-size: 0.9rem;
+  color: var(--farbe-grau);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Karten-Container */
+.karte {
+  max-width: 640px;
+  margin: 32px auto;
+  padding: 32px;
+  background: var(--farbe-karte);
+  border: 1px solid var(--farbe-rahmen);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.karte--schmal {
+  max-width: 420px;
+  margin-top: 12vh;
+  text-align: center;
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin-top: 0;
+}
+
+.hinweis {
+  color: var(--farbe-grau);
+}
+
+/* Meldungen */
+.meldung {
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  margin-bottom: 20px;
+  font-size: 0.95rem;
+}
+
+.meldung--erfolg {
+  background: var(--farbe-erfolg-bg);
+  color: var(--farbe-erfolg-text);
+}
+
+.meldung--fehler {
+  background: var(--farbe-fehler-bg);
+  color: var(--farbe-fehler-text);
+}
+
+.meldung--warnung {
+  background: var(--farbe-warnung-bg);
+  color: var(--farbe-warnung-text);
+}
+
+/* Formular */
+.formular {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 8px;
+}
+
+.feld {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.feld label {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.feld input,
+.feld select {
+  padding: 10px 12px;
+  border: 1px solid var(--farbe-rahmen);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  background: #fff;
+}
+
+.feld input:focus,
+.feld select:focus {
+  outline: none;
+  border-color: var(--farbe-primaer);
+  box-shadow: 0 0 0 3px rgba(0, 103, 184, 0.15);
+}
+
+.feld__hinweis {
+  color: var(--farbe-grau);
+  font-size: 0.8rem;
+}
+
+.aktionen {
+  margin-top: 8px;
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 10px 18px;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  background: #e5e7eb;
+  color: var(--farbe-text);
+}
+
+.btn--primaer {
+  background: var(--farbe-primaer);
+  color: #fff;
+}
+
+.btn--primaer:hover {
+  background: var(--farbe-primaer-dunkel);
+}
+
+.btn--block {
+  display: block;
+  width: 100%;
+  text-align: center;
+}
+
+.btn--klein {
+  padding: 5px 12px;
+  font-size: 0.85rem;
+}
+
+.vorschau {
+  margin-top: 24px;
+  font-size: 0.85rem;
+  color: var(--farbe-grau);
+}
+
+code {
+  background: #f3f4f6;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: "Consolas", "Courier New", monospace;
+}

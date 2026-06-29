@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Neuen Benutzer anlegen – M365-Onboarding</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="kopf">
+    <span class="kopf__titel">M365-Onboarding</span>
+    <span class="kopf__rechts">
+      Angemeldet als <strong><%= upn %></strong>
+      <a class="btn btn--klein" href="/auth/logout">Abmelden</a>
+    </span>
+  </header>
+
+  <main class="karte">
+    <h1>Neuen Microsoft-365-Benutzer anlegen</h1>
+
+    <% if (typeof erfolg !== 'undefined' && erfolg) { %>
+      <div class="meldung meldung--erfolg"><%= erfolg %></div>
+    <% } %>
+    <% if (typeof fehler !== 'undefined' && fehler) { %>
+      <div class="meldung meldung--fehler"><%= fehler %></div>
+    <% } %>
+
+    <% if ((!domains || domains.length === 0) || (!skus || skus.length === 0)) { %>
+      <div class="meldung meldung--warnung">
+        <% if (!domains || domains.length === 0) { %>
+          Es konnten keine verifizierten Domains geladen werden.
+        <% } %>
+        <% if (!skus || skus.length === 0) { %>
+          Es sind keine Lizenzen mit freien Einheiten verfügbar.
+        <% } %>
+      </div>
+    <% } %>
+
+    <form method="POST" action="/" class="formular" autocomplete="off">
+      <div class="feld">
+        <label for="vorname">Vorname</label>
+        <input type="text" id="vorname" name="vorname" required
+               value="<%= (eingaben && eingaben.vorname) ? eingaben.vorname : '' %>">
+      </div>
+
+      <div class="feld">
+        <label for="nachname">Nachname</label>
+        <input type="text" id="nachname" name="nachname" required
+               value="<%= (eingaben && eingaben.nachname) ? eingaben.nachname : '' %>">
+      </div>
+
+      <div class="feld">
+        <label for="private_mail">Private E-Mail-Adresse</label>
+        <input type="email" id="private_mail" name="private_mail" required
+               value="<%= (eingaben && eingaben.privateMail) ? eingaben.privateMail : '' %>">
+        <small class="feld__hinweis">
+          An diese Adresse werden die Zugangsdaten gesendet. Sie wird nicht gespeichert.
+        </small>
+      </div>
+
+      <div class="feld">
+        <label for="domain">Domain</label>
+        <select id="domain" name="domain" required>
+          <option value="" disabled <%= (!eingaben || !eingaben.domain) ? 'selected' : '' %>>
+            – bitte wählen –
+          </option>
+          <% (domains || []).forEach(function (d) { %>
+            <option value="<%= d.id %>"
+              <%= (eingaben && eingaben.domain === d.id) ? 'selected' : (d.isDefault ? 'selected' : '') %>>
+              <%= d.id %><%= d.isDefault ? ' (Standard)' : '' %>
+            </option>
+          <% }); %>
+        </select>
+      </div>
+
+      <div class="feld">
+        <label for="sku_id">Lizenz</label>
+        <select id="sku_id" name="sku_id" required>
+          <option value="" disabled <%= (!eingaben || !eingaben.skuId) ? 'selected' : '' %>>
+            – bitte wählen –
+          </option>
+          <% (skus || []).forEach(function (s) { %>
+            <option value="<%= s.skuId %>"
+              <%= (eingaben && eingaben.skuId === s.skuId) ? 'selected' : '' %>>
+              <%= s.skuPartNumber %> (<%= s.freieEinheiten %> frei)
+            </option>
+          <% }); %>
+        </select>
+      </div>
+
+      <div class="aktionen">
+        <button type="submit" class="btn btn--primaer">Benutzer anlegen</button>
+      </div>
+    </form>
+
+    <p class="vorschau">
+      Der Anmeldename wird gebildet als
+      <code>vorname.nachname@domain</code> (Umlaute und Sonderzeichen werden
+      automatisch bereinigt).
+    </p>
+  </main>
+</body>
+</html>

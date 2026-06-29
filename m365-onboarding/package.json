@@ -1,0 +1,24 @@
+{
+  "name": "m365-onboarding",
+  "version": "1.0.0",
+  "description": "M365-Onboarding-Tool: Self-Service-Anlage neuer Microsoft-365-Benutzer per delegiertem OAuth-Login",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@azure/msal-node": "^2.16.2",
+    "connect-pg-simple": "^9.0.1",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "nodemailer": "^6.9.16",
+    "pg": "^8.13.1"
+  }
+}

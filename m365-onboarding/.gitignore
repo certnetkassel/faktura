@@ -1,0 +1,12 @@
+# Abhängigkeiten
+node_modules/
+
+# Umgebungskonfiguration mit Geheimnissen
+.env
+
+# Logs
+*.log
+npm-debug.log*
+
+# Betriebssystem-/Editor-Dateien
+.DS_Store
