@@ -1,0 +1,37 @@
+# docker-compose.yml
+# Startet eine lokale PostgreSQL für die Entwicklung des Onboarding-Tools.
+#
+#   docker compose up -d db
+#
+# Verbindungs-URL (entspricht den Vorgaben unten):
+#   postgres://m365:m365@localhost:5432/m365onboarding
+#
+# Schema anschliessend einspielen:
+#   psql "postgres://m365:m365@localhost:5432/m365onboarding" -f db/schema.sql
+#
+# Hinweis: Die Zugangsdaten hier sind reine Entwicklungs-Defaults. Für den
+# Produktivbetrieb gehoeren echte Werte ausschliesslich in Umgebungsvariablen.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: m365-onboarding-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: m365
+      POSTGRES_PASSWORD: m365
+      POSTGRES_DB: m365onboarding
+    ports:
+      - "5432:5432"
+    volumes:
+      - m365_pgdata:/var/lib/postgresql/data
+      # Schema beim ersten Start automatisch einspielen.
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U m365 -d m365onboarding"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  m365_pgdata:

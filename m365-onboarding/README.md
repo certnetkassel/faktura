@@ -20,6 +20,9 @@ Microsoft-365-Tenant anlegt:
 
 ## Setup
 
+> Ausführliche Schritt-für-Schritt-Anleitung (inkl. Azure/Entra-App-Registration
+> und Fehlerbehebung): siehe [`docs/EINRICHTUNG.md`](./docs/EINRICHTUNG.md).
+
 1. **Abhängigkeiten installieren**
 
    ```bash
@@ -39,7 +42,13 @@ Microsoft-365-Tenant anlegt:
    psql "$DATABASE_URL" -f db/schema.sql
    ```
 
-4. **Starten**
+4. **Preflight-Check** (prüft Umgebungsvariablen, DB-Verbindung und Tabellen):
+
+   ```bash
+   npm run check
+   ```
+
+5. **Starten**
 
    ```bash
    npm start
@@ -47,6 +56,17 @@ Microsoft-365-Tenant anlegt:
 
    Standardmäßig läuft die Anwendung auf dem in `PORT` konfigurierten Port
    (Vorgabe: 3000).
+
+### Lokale PostgreSQL per Docker (optional)
+
+Für die lokale Entwicklung liegt ein `docker-compose.yml` bei, das eine
+PostgreSQL startet und das Schema automatisch einspielt:
+
+```bash
+docker compose up -d db
+```
+
+Verbindungs-URL: `postgres://m365:m365@localhost:5432/m365onboarding`
 
 ## Umgebungsvariablen
 
