@@ -22,6 +22,9 @@ Microsoft-365-Tenant anlegt:
 
 > Ausführliche Schritt-für-Schritt-Anleitung (inkl. Azure/Entra-App-Registration
 > und Fehlerbehebung): siehe [`docs/EINRICHTUNG.md`](./docs/EINRICHTUNG.md).
+>
+> An mehreren Rechnern arbeiten (Notebook ↔ Mini-PC ↔ Office) ohne
+> OneDrive-Sync des Codes: siehe [`docs/GERAETEWECHSEL.md`](./docs/GERAETEWECHSEL.md).
 
 1. **Abhängigkeiten installieren**
 
