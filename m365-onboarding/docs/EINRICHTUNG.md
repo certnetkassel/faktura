@@ -23,8 +23,8 @@ cd m365-onboarding
 npm install
 ```
 
-Node.js ≥ 18 ist erforderlich (das eingebaute `fetch` wird genutzt). Prüfen mit
-`node --version`.
+Node.js ≥ 20 ist erforderlich (von `@azure/msal-node` v5 vorausgesetzt; das
+eingebaute `fetch` wird genutzt). Prüfen mit `node --version`.
 
 ---
 

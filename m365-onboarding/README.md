@@ -13,7 +13,7 @@ Microsoft-365-Tenant anlegt:
 
 ## Voraussetzungen
 
-- Node.js ≥ 18 (nutzt das eingebaute `fetch`)
+- Node.js ≥ 20 (von `@azure/msal-node` v5 vorausgesetzt; nutzt das eingebaute `fetch`)
 - PostgreSQL-Datenbank
 - SMTP-Zugang (z. B. IONOS) für den Mailversand
 - Eine Azure/Entra App-Registration (siehe unten)
