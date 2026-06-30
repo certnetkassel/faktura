@@ -25,6 +25,9 @@ Microsoft-365-Tenant anlegt:
 >
 > An mehreren Rechnern arbeiten (Notebook ↔ Mini-PC ↔ Office) ohne
 > OneDrive-Sync des Codes: siehe [`docs/GERAETEWECHSEL.md`](./docs/GERAETEWECHSEL.md).
+>
+> Schnellstart für die ersten drei Schritte (GitHub-Repo, Entra-App, DNS)
+> mit Abhak-Liste: siehe [`docs/START_AN_DER_ARBEIT.md`](./docs/START_AN_DER_ARBEIT.md).
 
 1. **Abhängigkeiten installieren**
 

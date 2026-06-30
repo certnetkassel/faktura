@@ -29,6 +29,9 @@ nahtlos weiterzumachen.
 
 ## Nächste Schritte (Reihenfolge)
 
+> Für Schritt 1–3 gibt es ein fertiges Abhak-Blatt mit Eintragefeldern:
+> **`docs/START_AN_DER_ARBEIT.md`**. Damit anfangen.
+
 1. **GitHub-Repo anlegen + pushen**
    - Privates Repo `certnetkassel/m365-onboarding` (leer, ohne README/.gitignore).
    - Mit GitHub CLI in einem Rutsch:
