@@ -89,6 +89,17 @@ Alle Geheimnisse werden ausschließlich über Umgebungsvariablen gesetzt. Siehe
 | `SMTP_PASS`     | SMTP-Passwort                                                    |
 | `MAIL_FROM`     | Absenderadresse der Willkommensmails                            |
 
+## Deployment auf dem Server
+
+Für das Ausrollen auf einem Ubuntu-Server (Subdomain `onboarding.certnet.eu`,
+nginx + systemd + PostgreSQL + Let's Encrypt) gibt es ein vollständiges
+Runbook samt Konfigurationsvorlagen im Verzeichnis [`deploy/`](./deploy):
+
+- [`deploy/DEPLOYMENT.md`](./deploy/DEPLOYMENT.md) – Schritt-für-Schritt-Anleitung
+- [`deploy/nginx-onboarding.conf`](./deploy/nginx-onboarding.conf) – nginx-Reverse-Proxy
+- [`deploy/m365-onboarding.service`](./deploy/m365-onboarding.service) – systemd-Unit
+- [`deploy/env.production.example`](./deploy/env.production.example) – Produktions-`.env`-Vorlage
+
 ## Azure / Entra App-Registration
 
 Die App muss als **Web**-Anwendung registriert sein, mit der oben gesetzten

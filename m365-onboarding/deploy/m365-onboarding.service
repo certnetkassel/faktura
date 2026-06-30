@@ -1,0 +1,45 @@
+# m365-onboarding.service
+# systemd-Unit für das M365-Onboarding-Tool.
+#
+# Ablage auf dem Server:
+#   /etc/systemd/system/m365-onboarding.service
+# Danach:
+#   systemctl daemon-reload
+#   systemctl enable --now m365-onboarding
+#   systemctl status m365-onboarding
+#
+# Die App liest ihre Konfiguration aus /opt/m365-onboarding/.env (via dotenv),
+# da WorkingDirectory entsprechend gesetzt ist.
+
+[Unit]
+Description=M365-Onboarding-Tool (Node.js/Express)
+Documentation=https://github.com/certnetkassel/m365-onboarding
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+# Dedizierter Systembenutzer (siehe DEPLOYMENT.md, wird dort angelegt).
+User=m365
+Group=m365
+WorkingDirectory=/opt/m365-onboarding
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=5
+
+# Produktionsmodus aktiviert Secure-Cookies in server.js.
+Environment=NODE_ENV=production
+
+# Härtung.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+
+# Logs landen im journald (journalctl -u m365-onboarding -f).
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=m365-onboarding
+
+[Install]
+WantedBy=multi-user.target
