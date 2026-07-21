@@ -124,9 +124,9 @@ LOGO_PLACEHOLDER = '{{logo}}'
 LOGO_WIDTH_CM = 4.0  # Standardbreite des Logos im Dokument (Fallback)
 LOGO_WIDTH_MIN_CM = 1.0
 LOGO_WIDTH_MAX_CM = 10.0
-SIDEBAR_LOGO_PX = 105  # Standardhöhe des Logos in der Seitenleiste (Fallback)
-SIDEBAR_LOGO_MIN_PX = 30
-SIDEBAR_LOGO_MAX_PX = 200
+SIDEBAR_LOGO_PX = 200  # Standardbreite des Logos in der Seitenleiste (Fallback)
+SIDEBAR_LOGO_MIN_PX = 60
+SIDEBAR_LOGO_MAX_PX = 240  # mehr als die Seitenleiste breit ist wäre sinnlos
 
 
 def clamp(value, minimum, maximum, default):
@@ -148,7 +148,7 @@ def get_logo_width_cm(s):
 
 
 def get_logo_sidebar_px(s):
-    """Logo-Höhe in der Seitenleiste aus den Einstellungen (in Pixeln)."""
+    """Logo-Breite in der Seitenleiste aus den Einstellungen (in Pixeln)."""
     try:
         value = s['logo_sidebar_px']
     except (KeyError, IndexError, TypeError):

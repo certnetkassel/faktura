@@ -73,7 +73,9 @@
     <div class="section-divider">
       <h3>Logo-Größe</h3>
       <p>Gilt jeweils für beide Logo-Varianten (dunkel und hell) – nicht pro Datei.
-         Die Pixelwerte sind auf 96&nbsp;dpi gerechnet und dienen dem Größenvergleich.</p>
+         Beide Regler stellen die <strong>Breite</strong> ein und beide Vorschauen sind
+         gleich groß gezeichnet (1:1), gleiche Pixelzahl heißt also gleiche Größe.
+         Die cm-Werte sind auf 96&nbsp;dpi umgerechnet.</p>
     </div>
 
     <div class="form-grid">
@@ -87,32 +89,38 @@
         <small style="color:var(--muted)">Breite des {{ '{{logo}}' }}-Bildes in Rechnungen, Angeboten, Gutschriften und Mahnungen. Die Höhe passt sich dem Seitenverhältnis an.</small>
         {% if s.logo_light or s.logo_dark %}
         <div class="logo-preview-box">
-          <img id="logoPreviewDoc"
+          <img id="logoPreviewDoc" class="js-logo-aspect"
                src="{{ url_for('static', filename='logos/' + (s.logo_light or s.logo_dark)) }}"
-               alt="Vorschau Dokument">
-          <div class="logo-preview-scale">Maßstab: volle Kastenbreite = A4-Seitenbreite (21 cm)</div>
+               alt="Vorschau Dokument" onload="updateLogoPreview()">
+          <div class="logo-preview-scale">
+            <div class="page-bar"><div class="page-bar-fill" id="logoPageBar"></div></div>
+            <span id="logoPageText"></span>
+          </div>
         </div>
         {% endif %}
       </div>
 
       <div class="form-group">
-        <label>Höhe in der App-Seitenleiste
-          <output id="logoSidebarOut" class="slider-value">{{ s.logo_sidebar_px or 105 }} px</output>
+        <label>Breite in der App-Seitenleiste
+          <output id="logoSidebarOut" class="slider-value">{{ s.logo_sidebar_px or 200 }} px</output>
         </label>
         <input type="range" name="logo_sidebar_px" id="logoSidebar" class="slider"
-               min="30" max="200" step="1" value="{{ s.logo_sidebar_px or 105 }}"
+               min="60" max="240" step="1" value="{{ s.logo_sidebar_px or 200 }}"
                oninput="updateLogoPreview()">
         <small style="color:var(--muted)">Darstellung des Logos hier in der App. Wirkt sich nicht auf die Dokumente aus.</small>
         {% if s.logo_dark or s.logo_light %}
         <div class="logo-preview-box logo-preview-sidebar">
-          {% if s.logo_dark %}
-          <img src="{{ url_for('static', filename='logos/' + s.logo_dark) }}"
-               alt="Vorschau Seitenleiste" class="logo-dark js-logo-preview-sidebar">
-          {% endif %}
-          {% if s.logo_light %}
-          <img src="{{ url_for('static', filename='logos/' + s.logo_light) }}"
-               alt="Vorschau Seitenleiste" class="logo-light js-logo-preview-sidebar" style="display:none">
-          {% endif %}
+          <div class="sidebar-mock">
+            {% if s.logo_dark %}
+            <img src="{{ url_for('static', filename='logos/' + s.logo_dark) }}"
+                 alt="Vorschau Seitenleiste" class="logo-dark js-logo-preview-sidebar">
+            {% endif %}
+            {% if s.logo_light %}
+            <img src="{{ url_for('static', filename='logos/' + s.logo_light) }}"
+                 alt="Vorschau Seitenleiste" class="logo-light js-logo-preview-sidebar" style="display:none">
+            {% endif %}
+          </div>
+          <div class="logo-preview-scale">Maßstab: Kasten = echte Seitenleistenbreite (240 px)</div>
         </div>
         {% endif %}
       </div>
@@ -231,16 +239,34 @@
   const A4_BREITE_CM = 21;
   const PX_PRO_CM = 96 / 2.54;  // Umrechnung bei 96 dpi, nur zum Vergleichen
 
+  function komma(zahl) {
+    return zahl.toFixed(1).replace('.', ',');
+  }
+
   function updateLogoPreview() {
+    // Dokument: eingestellt wird in cm, gezeichnet wird 1:1 in Pixeln,
+    // damit die Vorschau denselben Maßstab hat wie die Seitenleisten-Vorschau.
     const width = document.getElementById('logoWidth');
     if (width) {
       const cm = parseFloat(width.value);
       const px = Math.round(cm * PX_PRO_CM);
       document.getElementById('logoWidthOut').textContent =
-        px + ' px · ' + cm.toFixed(1).replace('.', ',') + ' cm';
+        px + ' px · ' + komma(cm) + ' cm';
+
       const preview = document.getElementById('logoPreviewDoc');
       if (preview) {
-        preview.style.width = (cm / A4_BREITE_CM * 100) + '%';
+        preview.style.width = px + 'px';
+      }
+      // Anteil an der A4-Seitenbreite als Balken und Text
+      const anteil = cm / A4_BREITE_CM;
+      const bar = document.getElementById('logoPageBar');
+      if (bar) {
+        bar.style.width = (anteil * 100) + '%';
+      }
+      const text = document.getElementById('logoPageText');
+      if (text) {
+        text.textContent = komma(cm) + ' cm von 21 cm Seitenbreite ('
+                         + Math.round(anteil * 100) + ' %)';
       }
     }
 
@@ -249,9 +275,9 @@
       const px = parseInt(sidebar.value, 10);
       const cm = px / PX_PRO_CM;
       document.getElementById('logoSidebarOut').textContent =
-        px + ' px · ' + cm.toFixed(1).replace('.', ',') + ' cm';
+        px + ' px · ' + komma(cm) + ' cm';
       document.querySelectorAll('.js-logo-preview-sidebar').forEach(img => {
-        img.style.height = px + 'px';
+        img.style.width = px + 'px';
       });
     }
   }

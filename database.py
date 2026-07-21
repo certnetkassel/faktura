@@ -44,7 +44,7 @@ def init_db():
             next_offer_nr INTEGER DEFAULT 1,
             next_credit_nr INTEGER DEFAULT 1,
             logo_width_cm REAL DEFAULT 4.0,
-            logo_sidebar_px INTEGER DEFAULT 105
+            logo_sidebar_px INTEGER DEFAULT 200
         );
 
         CREATE TABLE IF NOT EXISTS customers (
@@ -191,7 +191,7 @@ def init_db():
 # deshalb werden fehlende Spalten hier einzeln nachgezogen.
 SETTINGS_MIGRATIONS = [
     ('logo_width_cm', 'REAL DEFAULT 4.0'),
-    ('logo_sidebar_px', 'INTEGER DEFAULT 105'),
+    ('logo_sidebar_px', 'INTEGER DEFAULT 200'),
 ]
 
 

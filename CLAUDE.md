@@ -210,8 +210,9 @@ Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften �
 - Vorlagenverwaltung (Upload, Download, Muster mit Beispieldaten)
 - Dark/Light Theme
 - Logo-Upload (Dark + Light Variante)
-- Logo-Größe per Schieberegler einstellbar: Breite in Dokumenten (1–10 cm) und
-  Höhe in der Seitenleiste (30–200 px), jeweils mit Live-Vorschau
+- Logo-Größe per Schieberegler einstellbar: beide regeln die BREITE, damit die
+  Werte vergleichbar sind — Dokument (1–10 cm) und Seitenleiste (60–240 px,
+  240 px = Sidebar-Breite). Beide Vorschauen sind 1:1 gezeichnet.
 - Responsive (mobile Sidebar mit Toggle)
 
 ## Bekannte Hinweise

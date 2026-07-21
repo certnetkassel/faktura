@@ -71,11 +71,12 @@
 .theme-toggle:hover { color: var(--accent); }
 
 /* ── Logo ── */
-/* Höhe ist Standardwert; die Einstellungen überschreiben sie per Inline-Style */
+/* Breite ist Standardwert; die Einstellungen überschreiben sie per Inline-Style.
+   Die Höhe ergibt sich aus dem Seitenverhältnis. */
 .sidebar-logo-img {
-  height: 105px;
+  width: 200px;
   max-width: 100%;
-  object-fit: contain;
+  height: auto;
 }
 
 /* ── Logo-Größe: Schieberegler und Vorschau ── */
@@ -119,10 +120,20 @@
   max-width: 100%;
   object-fit: contain;
 }
-/* Seitenleisten-Vorschau im Look der echten Sidebar (theme-abhängig) */
+/* Seitenleisten-Vorschau: Kasten hat die echte Sidebar-Breite,
+   damit sichtbar wird, wenn das Logo dort nicht mehr hineinpasst */
 .logo-preview-sidebar {
+  background: transparent;
+}
+.sidebar-mock {
+  width: var(--sidebar-w);
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 10px 0;
   background: var(--bg2);
-  border-style: solid;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
 }
 .logo-preview-scale {
   margin-top: 6px;
@@ -130,6 +141,22 @@
   color: #888;
   border-top: 1px solid #ddd;
   padding-top: 4px;
+}
+.logo-preview-sidebar .logo-preview-scale {
+  border-top-color: var(--border);
+}
+/* Balken: volle Breite = A4-Seitenbreite, Füllung = Anteil des Logos */
+.page-bar {
+  height: 5px;
+  background: #e4e6ee;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 5px;
+}
+.page-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
 }
 
 .login-logo {
