@@ -30,21 +30,26 @@ Alle Antworten, Erklärungen, Commit-Messages und Code-Kommentare auf Deutsch. C
 
 ### SSH-Zugang
 
+Konfiguriert in `~/.ssh/config` als Host `ionos-crm4`:
+
 ```
-Host: 82.165.29.152
-User: root
-Key: C:\Users\Dirk Mini-PC\OneDrive - CERTNET GmbH\Claude\SSH-Keys\id_ed25519
+Host ionos-crm4
+    HostName 82.165.29.152
+    User root
+    IdentityFile C:\Users\DirkHildebrand\.ssh\id_ed25519
 ```
+
+Verbindung also einfach per `ssh ionos-crm4`.
 
 ### Deploy-Workflow
 
 1. Lokal ändern und committen/pushen
-2. Per SSH auf Server: `cd /opt/faktura && git pull`
-3. `systemctl restart faktura`
+2. Per SSH auf Server: `ssh ionos-crm4 "cd /opt/faktura && git pull"`
+3. `ssh ionos-crm4 "systemctl restart faktura"`
 
 Alternativ: Dateien per SCP hochladen:
 ```bash
-scp -i <key> <datei> root@82.165.29.152:/opt/faktura/<datei>
+scp <datei> ionos-crm4:/opt/faktura/<datei>
 ```
 
 ## GitHub
@@ -56,7 +61,7 @@ scp -i <key> <datei> root@82.165.29.152:/opt/faktura/<datei>
 ## Lokaler Projektpfad
 
 ```
-C:\Users\Dirk Mini-PC\OneDrive - CERTNET GmbH\Claude\faktura-app
+C:\Users\DirkHildebrand\OneDrive - CERTNET GmbH\01 Claude\Micro-Fakt
 ```
 
 WICHTIG: Git-Repos NIEMALS auf rclone-gemounteten Laufwerken (P:\) betreiben.
