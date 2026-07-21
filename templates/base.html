@@ -15,10 +15,10 @@
       <div class="sidebar-brand">
         {% if settings.logo_dark or settings.logo_light %}
           {% if settings.logo_dark %}
-          <img src="{{ url_for('static', filename='logos/' + settings.logo_dark) }}" alt="Logo" class="logo-dark sidebar-logo-img">
+          <img src="{{ url_for('static', filename='logos/' + settings.logo_dark) }}" alt="Logo" class="logo-dark sidebar-logo-img" style="height:{{ logo_sidebar_px }}px">
           {% endif %}
           {% if settings.logo_light %}
-          <img src="{{ url_for('static', filename='logos/' + settings.logo_light) }}" alt="Logo" class="logo-light sidebar-logo-img" style="display:none">
+          <img src="{{ url_for('static', filename='logos/' + settings.logo_light) }}" alt="Logo" class="logo-light sidebar-logo-img" style="height:{{ logo_sidebar_px }}px;display:none">
           {% endif %}
         {% else %}
           Fak<span>tura</span>

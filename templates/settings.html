@@ -69,6 +69,48 @@
         {% endif %}
       </div>
     </div>
+
+    <div class="form-grid" style="margin-top:8px">
+      <div class="form-group">
+        <label>Logo-Breite in Dokumenten
+          <output id="logoWidthOut" class="slider-value">{{ '%.1f'|format(s.logo_width_cm or 4.0) }} cm</output>
+        </label>
+        <input type="range" name="logo_width_cm" id="logoWidth" class="slider"
+               min="1" max="10" step="0.1" value="{{ s.logo_width_cm or 4.0 }}"
+               oninput="updateLogoPreview()">
+        <small style="color:var(--muted)">Breite des {{ '{{logo}}' }}-Bildes in Rechnungen, Angeboten, Gutschriften und Mahnungen. Die Höhe passt sich dem Seitenverhältnis an.</small>
+        {% if s.logo_light or s.logo_dark %}
+        <div class="logo-preview-box">
+          <img id="logoPreviewDoc"
+               src="{{ url_for('static', filename='logos/' + (s.logo_light or s.logo_dark)) }}"
+               alt="Vorschau Dokument">
+          <div class="logo-preview-scale">Maßstab: volle Kastenbreite = A4-Seitenbreite (21 cm)</div>
+        </div>
+        {% endif %}
+      </div>
+
+      <div class="form-group">
+        <label>Logo-Höhe in der Seitenleiste
+          <output id="logoSidebarOut" class="slider-value">{{ s.logo_sidebar_px or 105 }} px</output>
+        </label>
+        <input type="range" name="logo_sidebar_px" id="logoSidebar" class="slider"
+               min="30" max="200" step="1" value="{{ s.logo_sidebar_px or 105 }}"
+               oninput="updateLogoPreview()">
+        <small style="color:var(--muted)">Darstellung des Logos hier in der App. Wirkt sich nicht auf die Dokumente aus.</small>
+        {% if s.logo_dark or s.logo_light %}
+        <div class="logo-preview-box logo-preview-sidebar">
+          {% if s.logo_dark %}
+          <img src="{{ url_for('static', filename='logos/' + s.logo_dark) }}"
+               alt="Vorschau Seitenleiste" class="logo-dark js-logo-preview-sidebar">
+          {% endif %}
+          {% if s.logo_light %}
+          <img src="{{ url_for('static', filename='logos/' + s.logo_light) }}"
+               alt="Vorschau Seitenleiste" class="logo-light js-logo-preview-sidebar" style="display:none">
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -174,4 +216,35 @@
 
   <button type="submit" class="btn btn-primary" style="margin-top:8px">Speichern</button>
 </form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  // Schieberegler für die Logo-Größe: Zahlenwert und Vorschau live mitführen.
+  // Die Dokument-Vorschau zeigt das Logo im Verhältnis zur A4-Breite (21 cm).
+  const A4_BREITE_CM = 21;
+
+  function updateLogoPreview() {
+    const width = document.getElementById('logoWidth');
+    if (width) {
+      const cm = parseFloat(width.value);
+      document.getElementById('logoWidthOut').textContent = cm.toFixed(1) + ' cm';
+      const preview = document.getElementById('logoPreviewDoc');
+      if (preview) {
+        preview.style.width = (cm / A4_BREITE_CM * 100) + '%';
+      }
+    }
+
+    const sidebar = document.getElementById('logoSidebar');
+    if (sidebar) {
+      const px = parseInt(sidebar.value, 10);
+      document.getElementById('logoSidebarOut').textContent = px + ' px';
+      document.querySelectorAll('.js-logo-preview-sidebar').forEach(img => {
+        img.style.height = px + 'px';
+      });
+    }
+  }
+
+  updateLogoPreview();
+</script>
 {% endblock %}

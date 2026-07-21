@@ -15,12 +15,19 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 from config import DATABASE, SECRET_KEY, UPLOAD_FOLDER, OUTPUT_FOLDER
-from database import get_db, init_db
+from database import get_db, init_db, migrate_db
 
 LOGO_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'logos')
 
 app = Flask(__name__)
 app.secret_key = SECRET_KEY
+
+# Unter Gunicorn wird der __main__-Block nicht ausgeführt, deshalb hier:
+# fehlende Spalten in bestehenden Datenbanken nachziehen.
+try:
+    migrate_db()
+except Exception as e:  # z.B. beim allerersten Start ohne Datenbank
+    print(f"Migration übersprungen: {e}")
 
 # ── Helpers ──
 
@@ -114,7 +121,39 @@ def replace_placeholders(doc, replacements):
 
 
 LOGO_PLACEHOLDER = '{{logo}}'
-LOGO_WIDTH_CM = 4.0  # Breite des eingefügten Logos im Dokument
+LOGO_WIDTH_CM = 4.0  # Standardbreite des Logos im Dokument (Fallback)
+LOGO_WIDTH_MIN_CM = 1.0
+LOGO_WIDTH_MAX_CM = 10.0
+SIDEBAR_LOGO_PX = 105  # Standardhöhe des Logos in der Seitenleiste (Fallback)
+SIDEBAR_LOGO_MIN_PX = 30
+SIDEBAR_LOGO_MAX_PX = 200
+
+
+def clamp(value, minimum, maximum, default):
+    """Wandelt value in eine Zahl und begrenzt sie auf [minimum, maximum]."""
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, number))
+
+
+def get_logo_width_cm(s):
+    """Logo-Breite für Dokumente aus den Einstellungen (in cm)."""
+    try:
+        value = s['logo_width_cm']
+    except (KeyError, IndexError, TypeError):
+        value = None
+    return clamp(value, LOGO_WIDTH_MIN_CM, LOGO_WIDTH_MAX_CM, LOGO_WIDTH_CM)
+
+
+def get_logo_sidebar_px(s):
+    """Logo-Höhe in der Seitenleiste aus den Einstellungen (in Pixeln)."""
+    try:
+        value = s['logo_sidebar_px']
+    except (KeyError, IndexError, TypeError):
+        value = None
+    return int(clamp(value, SIDEBAR_LOGO_MIN_PX, SIDEBAR_LOGO_MAX_PX, SIDEBAR_LOGO_PX))
 
 
 def _insert_logo_in_paragraph(paragraph, image_path, width):
@@ -209,9 +248,9 @@ def inject_settings():
     """Make settings available in all templates (for logo display)."""
     try:
         s = get_settings()
-        return {'settings': s}
+        return {'settings': s, 'logo_sidebar_px': get_logo_sidebar_px(s)}
     except Exception:
-        return {'settings': {}}
+        return {'settings': {}, 'logo_sidebar_px': SIDEBAR_LOGO_PX}
 
 
 # ── Auth ──
@@ -319,6 +358,14 @@ def settings():
             vals[f] = request.form.get(f, '')
         sets = ', '.join(f"{f}=?" for f in fields)
         db.execute(f"UPDATE settings SET {sets} WHERE id=1", list(vals.values()))
+
+        # Logo-Größen (Schieberegler) – auf sinnvolle Bereiche begrenzen
+        width_cm = clamp(request.form.get('logo_width_cm'),
+                         LOGO_WIDTH_MIN_CM, LOGO_WIDTH_MAX_CM, LOGO_WIDTH_CM)
+        sidebar_px = clamp(request.form.get('logo_sidebar_px'),
+                           SIDEBAR_LOGO_MIN_PX, SIDEBAR_LOGO_MAX_PX, SIDEBAR_LOGO_PX)
+        db.execute("UPDATE settings SET logo_width_cm=?, logo_sidebar_px=? WHERE id=1",
+                   [round(width_cm, 1), int(sidebar_px)])
 
         # Handle logo uploads
         os.makedirs(LOGO_FOLDER, exist_ok=True)
@@ -1058,7 +1105,7 @@ def generate_doc(doc_type, doc_id):
     # ohne hinterlegtes Logo Marker entfernen, damit kein {{logo}}-Text stehen bleibt
     logo_path = get_logo_path(s, prefer='light')
     if logo_path:
-        insert_logo(doc, logo_path)
+        insert_logo(doc, logo_path, get_logo_width_cm(s))
     else:
         replace_placeholders(doc, {LOGO_PLACEHOLDER: ''})
 
@@ -1274,9 +1321,10 @@ def vorlage_muster(doc_type):
 
     # Logo einfügen, wo {{logo}}-Marker steht (helle Variante für weißen Hintergrund);
     # ohne hinterlegtes Logo Marker entfernen, damit kein {{logo}}-Text stehen bleibt
-    logo_path = get_logo_path(get_settings(), prefer='light')
+    muster_settings = get_settings()
+    logo_path = get_logo_path(muster_settings, prefer='light')
     if logo_path:
-        insert_logo(doc, logo_path)
+        insert_logo(doc, logo_path, get_logo_width_cm(muster_settings))
     else:
         replace_placeholders(doc, {LOGO_PLACEHOLDER: ''})
 

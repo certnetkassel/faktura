@@ -115,7 +115,12 @@ W: ist davon nicht betroffen (lokaler subst-Alias, kein Netz-/rclone-Mount).
 ## Datenbank-Schema (SQLite)
 
 ### settings (id=1, Singleton)
-company_name, owner_name, street, zip, city, phone, email, tax_number, bank_name, iban, bic, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, password_hash, kleinunternehmer_text, invoice_prefix, offer_prefix, credit_prefix, next_invoice_nr, next_offer_nr, next_credit_nr, logo_dark, logo_light
+company_name, owner_name, street, zip, city, phone, email, tax_number, bank_name, iban, bic, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, password_hash, kleinunternehmer_text, invoice_prefix, offer_prefix, credit_prefix, next_invoice_nr, next_offer_nr, next_credit_nr, logo_dark, logo_light, logo_width_cm, logo_sidebar_px
+
+Nachträglich ergänzte Spalten werden von `migrate_db()` in database.py per
+`ALTER TABLE` nachgezogen (Liste `SETTINGS_MIGRATIONS`). Die Funktion läuft beim
+Import von app.py, weil unter Gunicorn der `__main__`-Block nicht ausgeführt wird.
+Neue Settings-Spalten deshalb IMMER zusätzlich dort eintragen.
 
 ### customers
 id, customer_nr (Text, z.B. K-0001), company, salutation, first_name, last_name, street, zip, city, email, phone, notes
@@ -176,7 +181,9 @@ Word-Vorlagen liegen in `/opt/faktura/vorlagen/`. Die App ersetzt Platzhalter in
 In einer Tabellenzelle platziert. Die App sucht nach diesem Marker, löscht ihn und fügt dynamisch Zeilen mit Pos/Bezeichnung/Menge/Einheit/Einzelpreis/Gesamt hinzu.
 
 ### {{logo}}-Marker (Bild)
-Wird durch das in den Einstellungen hinterlegte Logo als Inline-Bild ersetzt (python-docx `run.add_picture`). Verwendet wird die helle Variante (`logo_light`, für weißen Hintergrund), Fallback `logo_dark`. Standardbreite 4 cm (`LOGO_WIDTH_CM` in app.py), Seitenverhältnis bleibt erhalten. Funktioniert in Body, Tabellen und Kopf-/Fußzeilen, auch wenn Word den Marker über mehrere Runs zerrissen hat. Ist kein Logo hinterlegt, wird der Marker-Text einfach entfernt (kein sichtbares `{{logo}}`).
+Wird durch das in den Einstellungen hinterlegte Logo als Inline-Bild ersetzt (python-docx `run.add_picture`). Verwendet wird die helle Variante (`logo_light`, für weißen Hintergrund), Fallback `logo_dark`. Die Breite stellt der Anwender in den Einstellungen per Schieberegler ein
+(`settings.logo_width_cm`, 1–10 cm, Standard 4 cm = `LOGO_WIDTH_CM` in app.py als Fallback);
+das Seitenverhältnis bleibt erhalten. Funktioniert in Body, Tabellen und Kopf-/Fußzeilen, auch wenn Word den Marker über mehrere Runs zerrissen hat. Ist kein Logo hinterlegt, wird der Marker-Text einfach entfernt (kein sichtbares `{{logo}}`).
 
 ## Authentifizierung
 
@@ -203,6 +210,8 @@ Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften �
 - Vorlagenverwaltung (Upload, Download, Muster mit Beispieldaten)
 - Dark/Light Theme
 - Logo-Upload (Dark + Light Variante)
+- Logo-Größe per Schieberegler einstellbar: Breite in Dokumenten (1–10 cm) und
+  Höhe in der Seitenleiste (30–200 px), jeweils mit Live-Vorschau
 - Responsive (mobile Sidebar mit Toggle)
 
 ## Bekannte Hinweise

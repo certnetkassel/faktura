@@ -42,7 +42,9 @@ def init_db():
             credit_prefix TEXT DEFAULT 'GS',
             next_invoice_nr INTEGER DEFAULT 1,
             next_offer_nr INTEGER DEFAULT 1,
-            next_credit_nr INTEGER DEFAULT 1
+            next_credit_nr INTEGER DEFAULT 1,
+            logo_width_cm REAL DEFAULT 4.0,
+            logo_sidebar_px INTEGER DEFAULT 105
         );
 
         CREATE TABLE IF NOT EXISTS customers (
@@ -178,6 +180,29 @@ def init_db():
 
     # Ensure settings row exists
     c.execute("INSERT OR IGNORE INTO settings (id) VALUES (1)")
+    conn.commit()
+    conn.close()
+
+    migrate_db()
+
+
+# Nachträglich ergänzte Spalten der settings-Tabelle.
+# CREATE TABLE IF NOT EXISTS lässt bestehende Datenbanken unverändert,
+# deshalb werden fehlende Spalten hier einzeln nachgezogen.
+SETTINGS_MIGRATIONS = [
+    ('logo_width_cm', 'REAL DEFAULT 4.0'),
+    ('logo_sidebar_px', 'INTEGER DEFAULT 105'),
+]
+
+
+def migrate_db():
+    """Ergänzt fehlende Spalten in bestehenden Datenbanken. Idempotent."""
+    conn = get_db()
+    c = conn.cursor()
+    existing = {row['name'] for row in c.execute("PRAGMA table_info(settings)")}
+    for column, definition in SETTINGS_MIGRATIONS:
+        if column not in existing:
+            c.execute(f"ALTER TABLE settings ADD COLUMN {column} {definition}")
     conn.commit()
     conn.close()
 

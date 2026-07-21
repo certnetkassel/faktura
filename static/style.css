@@ -71,9 +71,50 @@
 .theme-toggle:hover { color: var(--accent); }
 
 /* ── Logo ── */
+/* Höhe ist Standardwert; die Einstellungen überschreiben sie per Inline-Style */
 .sidebar-logo-img {
   height: 105px;
+  max-width: 100%;
   object-fit: contain;
+}
+
+/* ── Logo-Größe: Schieberegler und Vorschau ── */
+.slider {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.slider-value {
+  float: right;
+  font-weight: 600;
+  color: var(--accent);
+}
+.logo-preview-box {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: #ffffff;
+  text-align: center;
+  overflow: hidden;
+}
+.logo-preview-box img {
+  display: block;
+  margin: 0 auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+/* Seitenleisten-Vorschau im Look der echten Sidebar (theme-abhängig) */
+.logo-preview-sidebar {
+  background: var(--bg2);
+  border-style: solid;
+}
+.logo-preview-scale {
+  margin-top: 6px;
+  font-size: .7rem;
+  color: #888;
+  border-top: 1px solid #ddd;
+  padding-top: 4px;
 }
 
 .login-logo {
