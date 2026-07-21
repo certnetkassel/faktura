@@ -1,0 +1,44 @@
+==================================================================
+  DIRK HILDEBRAND – Logo-Paket V2 „Fenster mit Akzent"
+  App-Maker & MS 365 Supporter
+==================================================================
+
+DAS ZEICHEN: Ein abgerundeter Fenster-Rahmen (App-Fenster) mit
+einem blauen Baustein – kompakt, reduziert, gut reproduzierbar.
+
+Markenfarben:
+  Navy  #15203C   (Rahmen & Text auf hellem Grund)
+  Blau  #2196F3   (Akzent-Baustein)
+Schrift der Wortmarke: Arial Bold (frei: Arimo / Liberation Sans)
+Beide Textzeilen sind exakt gleich breit.
+
+
+ORDNER-ÜBERSICHT
+------------------------------------------------------------------
+SVG/                       Vektor – verlustfrei skalierbar (erste Wahl)
+   *-farbe-hell            Farbig, Navy-Text     → heller Hintergrund
+   *-farbe-dunkel          Farbig, weißer Text   → dunkler Hintergrund
+   *-schwarz               Einfarbig schwarz
+   *-weiss                 Einfarbig weiß
+   *-folienschnitt         Einfarbig, Schrift als Pfade – direkt
+                           plotterfähig, keine Schrift-Umwandlung nötig
+   *-mark                  Nur das Zeichen (App-Icon / Favicon)
+PNG_freigestellt/          PNG mit transparentem Hintergrund (1800 px)
+PNG_weisser-Hintergrund/   PNG auf Weiß (farbe, schwarz)
+PNG_dunkler-Hintergrund/   PNG auf Navy (farbe, weiss)
+JPEG/                      JPEG (farbe auf Weiß, dunkel auf Navy)
+
+
+HINWEISE
+------------------------------------------------------------------
+• SVG ist immer die beste Wahl – beliebig skalierbar.
+• Folienschnitt: Die komplette Datei (Zeichen + Schrift) besteht aus
+  geschlossenen Pfaden in einer Farbe und kann direkt in die
+  Schneide-Software geladen werden.
+• In den übrigen SVGs liegt die Schrift als Text (Arial Bold) –
+  dadurch nachträglich editierbar.
+• Schutzzone: rund um das Logo mindestens die Höhe des blauen
+  Bausteins freihalten.
+• Das Vorgänger-Paket liegt unverändert unter logo_paket/.
+
+© 2026 Dirk Hildebrand · CERTNET GmbH
