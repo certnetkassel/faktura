@@ -61,10 +61,17 @@ scp <datei> ionos-crm4:/opt/faktura/<datei>
 ## Lokaler Projektpfad
 
 ```
-C:\Users\DirkHildebrand\OneDrive - CERTNET GmbH\01 Claude\Micro-Fakt
+W:\Micro-Fakt
 ```
 
+W: ist per `subst` ein Alias auf den OneDrive-Ordner "01 Claude" und damit auf
+allen Rechnern derselbe Pfad. Gemappt wird per Batch-Skript in `W:\`:
+
+- Arbeits-PC: `Laufwerk-W-mappen_PC_Arbeit.bat` → `C:\Users\DirkHildebrand\OneDrive - CERTNET GmbH\01 Claude`
+- Mini-PC: `Laufwerk-W-mappen_Mini_PC.bat` → `C:\Users\Dirk Mini-PC\OneDrive - CERTNET GmbH\01 Claude`
+
 WICHTIG: Git-Repos NIEMALS auf rclone-gemounteten Laufwerken (P:\) betreiben.
+W: ist davon nicht betroffen (lokaler subst-Alias, kein Netz-/rclone-Mount).
 
 ## Projektstruktur
 
