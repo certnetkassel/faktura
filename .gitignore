@@ -5,3 +5,6 @@ output/
 *.pyc
 *.bak
 *.bak-*
+# Archive/Backups gehoeren nicht ins Repo (enthalten u.a. faktura.db)
+*.tar.gz
+*.zip

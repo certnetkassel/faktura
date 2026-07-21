@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  @page { margin: 20mm 15mm 25mm 15mm; }
+  body { font-family: Arial, sans-serif; font-size: 10pt; color: #333; margin: 0; padding: 0; }
+  
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5mm; }
+  .header-left { display: flex; align-items: center; gap: 10px; }
+  .header-left img { max-height: 50px; }
+  .firmenname { font-size: 14pt; font-weight: bold; color: #1F4E79; }
+  .firmenadresse { font-size: 8pt; color: #666; margin-top: 2px; }
+  
+  .absenderzeile { font-size: 7pt; color: #999; border-bottom: 1px solid #ccc; padding-bottom: 2mm; margin-bottom: 3mm; }
+  
+  .empfaenger { margin-bottom: 8mm; min-height: 30mm; }
+  .empfaenger p { margin: 0; line-height: 1.5; }
+  
+  .beleginfo { float: right; width: 200px; margin-top: -30mm; text-align: right; }
+  .beleginfo table { width: 100%; font-size: 9pt; }
+  .beleginfo td { padding: 1px 0; }
+  .beleginfo td:first-child { color: #666; }
+  .beleginfo td:last-child { font-weight: bold; text-align: right; }
+  
+  .betreff { font-size: 13pt; font-weight: bold; color: #1F4E79; margin: 10mm 0 3mm 0; clear: both; }
+  .titel { font-size: 10pt; margin-bottom: 5mm; }
+  
+  .positionen { width: 100%; border-collapse: collapse; margin-bottom: 5mm; }
+  .positionen thead th { background-color: #1F4E79; color: white; padding: 3mm 2mm; text-align: left; font-size: 9pt; }
+  .positionen thead th.rechts { text-align: right; }
+  .positionen tbody td { padding: 2mm; border-bottom: 1px solid #eee; font-size: 9pt; vertical-align: top; }
+  .positionen tbody td.rechts { text-align: right; }
+  .beschreibung { font-size: 8pt; color: #666; margin-top: 1mm; }
+  
+  .summenblock { width: 250px; margin-left: auto; margin-top: 5mm; }
+  .summenblock table { width: 100%; }
+  .summenblock td { padding: 2mm 0; font-size: 10pt; }
+  .summenblock td:last-child { text-align: right; }
+  .gesamtbetrag td { font-weight: bold; font-size: 12pt; border-top: 2px solid #1F4E79; padding-top: 3mm; }
+  
+  .hinweis { font-size: 8pt; color: #666; margin-top: 5mm; font-style: italic; }
+  .zahlungshinweis { margin-top: 8mm; padding: 3mm; background-color: #f5f5f5; border-left: 3px solid #1F4E79; font-size: 9pt; }
+  
+  .footer { position: fixed; bottom: 0; left: 0; right: 0; padding: 3mm 15mm; border-top: 1px solid #ccc; font-size: 7pt; color: #666; display: flex; justify-content: space-between; }
+  .footer-block { flex: 1; }
+  .footer-block:nth-child(2) { text-align: center; }
+  .footer-block:nth-child(3) { text-align: right; }
+</style>
+</head>
+<body>
+
+<!-- BRIEFKOPF -->
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="firmenname">@{first(outputs('EinstellungenAbrufen')?['body/value'])?['Firmenname']}</div>
+      <div class="firmenadresse">@{first(outputs('EinstellungenAbrufen')?['body/value'])?['Strasse']} &middot; @{first(outputs('EinstellungenAbrufen')?['body/value'])?['PLZ']} @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Ort']}</div>
+    </div>
+  </div>
+</div>
+
+<!-- ABSENDERZEILE -->
+<div class="absenderzeile">
+  @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Inhaber']} &middot; @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Strasse']} &middot; @{first(outputs('EinstellungenAbrufen')?['body/value'])?['PLZ']} @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Ort']}
+</div>
+
+<!-- EMPFÄNGER -->
+<div class="empfaenger">
+  <p>@{outputs('KundeAbrufen')?['body/Anrede/Value']} @{outputs('KundeAbrufen')?['body/Vorname']} @{outputs('KundeAbrufen')?['body/Nachname']}</p>
+  <p>@{outputs('KundeAbrufen')?['body/Title']}</p>
+  <p>@{outputs('KundeAbrufen')?['body/Strasse']}</p>
+  <p>@{outputs('KundeAbrufen')?['body/PLZ']} @{outputs('KundeAbrufen')?['body/Ort']}</p>
+</div>
+
+<!-- BELEGINFO -->
+<div class="beleginfo">
+  <table>
+    <tr><td>Datum:</td><td>@{formatDateTime(outputs('BelegAbrufen')?['body/BelegDatum'], 'dd.MM.yyyy')}</td></tr>
+    <tr><td>Kunden-Nr.:</td><td>@{outputs('KundeAbrufen')?['body/KundenNr']}</td></tr>
+    <tr><td>Beleg-Nr.:</td><td>@{outputs('BelegAbrufen')?['body/BelegNr']}</td></tr>
+  </table>
+</div>
+
+<!-- BETREFF -->
+<div class="betreff">@{outputs('BelegAbrufen')?['body/BelegTyp/Value']} @{outputs('BelegAbrufen')?['body/BelegNr']}</div>
+<div class="titel">@{outputs('BelegAbrufen')?['body/Title']}</div>
+
+<!-- POSITIONEN-TABELLE -->
+<table class="positionen">
+  <thead>
+    <tr>
+      <th style="width:30px">Pos.</th>
+      <th>Bezeichnung</th>
+      <th class="rechts" style="width:60px">Menge</th>
+      <th style="width:70px">Einheit</th>
+      <th class="rechts" style="width:90px">Einzelpreis</th>
+      <th class="rechts" style="width:90px">Gesamt</th>
+    </tr>
+  </thead>
+  <tbody>
+    POSITIONEN_PLATZHALTER
+  </tbody>
+</table>
+
+<!-- SUMMENBLOCK -->
+<div class="summenblock">
+  <table>
+    <tr class="gesamtbetrag">
+      <td>Gesamtbetrag:</td>
+      <td>@{formatNumber(outputs('BelegAbrufen')?['body/Gesamtbetrag'], 'N2', 'de-DE')} &euro;</td>
+    </tr>
+  </table>
+</div>
+
+<!-- KLEINUNTERNEHMER-HINWEIS -->
+<div class="hinweis">
+  @{first(outputs('EinstellungenAbrufen')?['body/value'])?['KleinunternehmerText']}
+</div>
+
+<!-- ZAHLUNGSHINWEIS (nur bei Rechnungen) -->
+<div class="zahlungshinweis">
+  Bitte &uuml;berweisen Sie den Betrag bis zum <strong>@{formatDateTime(outputs('BelegAbrufen')?['body/Zahlungsziel'], 'dd.MM.yyyy')}</strong> auf das unten genannte Konto.
+</div>
+
+<!-- FUSSZEILE -->
+<div class="footer">
+  <div class="footer-block">
+    @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Firmenname']}<br>
+    @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Inhaber']}<br>
+    @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Strasse']}<br>
+    @{first(outputs('EinstellungenAbrufen')?['body/value'])?['PLZ']} @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Ort']}
+  </div>
+  <div class="footer-block">
+    @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Bankname']}<br>
+    IBAN: @{first(outputs('EinstellungenAbrufen')?['body/value'])?['IBAN']}<br>
+    BIC: @{first(outputs('EinstellungenAbrufen')?['body/value'])?['BIC']}
+  </div>
+  <div class="footer-block">
+    Tel.: @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Mobil']}<br>
+    @{first(outputs('EinstellungenAbrufen')?['body/value'])?['EMail']}<br>
+    StNr.: @{first(outputs('EinstellungenAbrufen')?['body/value'])?['Steuernummer']}
+  </div>
+</div>
+
+</body>
+</html>
