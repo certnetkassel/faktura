@@ -79,6 +79,21 @@
 }
 
 /* ── Logo-Größe: Schieberegler und Vorschau ── */
+.section-divider {
+  margin: 22px 0 14px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+.section-divider h3 {
+  font-size: .95rem;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.section-divider p {
+  font-size: .8rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
 .slider {
   width: 100%;
   accent-color: var(--accent);
