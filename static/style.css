@@ -159,6 +159,115 @@
   border-radius: 3px;
 }
 
+/* ── Info-Button (i) mit ausklappbarer Anleitung ── */
+.info-box {
+  position: relative;
+}
+.info-toggle {
+  list-style: none;
+  cursor: pointer;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  font-size: .75rem;
+  font-weight: 700;
+  font-style: italic;
+  font-family: Georgia, serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background var(--transition), color var(--transition);
+}
+.info-toggle::-webkit-details-marker { display: none; }
+.info-toggle:hover,
+.info-box[open] .info-toggle {
+  background: var(--accent);
+  color: #fff;
+}
+.info-panel {
+  position: absolute;
+  right: 0;
+  top: 30px;
+  z-index: 30;
+  width: min(620px, calc(100vw - 48px));
+  max-height: 70vh;
+  overflow-y: auto;
+  padding: 16px 18px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .35);
+  font-size: .82rem;
+  line-height: 1.6;
+  color: var(--text);
+  font-weight: 400;
+  text-align: left;
+}
+.info-panel h4 {
+  font-size: .9rem;
+  margin-bottom: 8px;
+}
+.info-panel ol {
+  margin: 8px 0 8px 18px;
+}
+.info-panel li {
+  margin-bottom: 8px;
+}
+.info-panel pre {
+  margin-top: 6px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  font-size: .75rem;
+  overflow-x: auto;
+  white-space: pre;
+}
+.info-panel .info-note {
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+}
+
+/* ── Auswahl: Radio-Zeile und Checkbox ── */
+.radio-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.radio-option,
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: .85rem;
+  font-weight: 400;
+  color: var(--text);
+}
+.radio-option {
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg2);
+}
+.radio-option:has(input:checked) {
+  border-color: var(--accent);
+}
+.radio-option input,
+.checkbox-option input {
+  accent-color: var(--accent);
+  width: auto;
+  margin: 0;
+}
+.radio-option small,
+.checkbox-option small {
+  color: var(--muted);
+}
+
 .login-logo {
   margin-bottom: 20px;
 }

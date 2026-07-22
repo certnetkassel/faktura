@@ -1,6 +1,8 @@
+import base64
 import os
 import smtplib
 import sqlite3
+import time
 from datetime import datetime, date, timedelta
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
@@ -8,6 +10,7 @@ from email.mime.text import MIMEText
 from email import encoders
 from functools import wraps
 
+import requests
 from flask import (Flask, render_template, request, redirect, url_for,
                    flash, session, send_file, jsonify)
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -352,12 +355,23 @@ def settings():
                   'tax_number', 'bank_name', 'iban', 'bic', 'smtp_host', 'smtp_port',
                   'smtp_user', 'smtp_pass', 'smtp_from', 'kleinunternehmer_text',
                   'invoice_prefix', 'offer_prefix', 'credit_prefix',
-                  'next_invoice_nr', 'next_offer_nr', 'next_credit_nr']
+                  'next_invoice_nr', 'next_offer_nr', 'next_credit_nr',
+                  'graph_tenant_id', 'graph_client_id', 'graph_sender']
         vals = {}
         for f in fields:
             vals[f] = request.form.get(f, '')
         sets = ', '.join(f"{f}=?" for f in fields)
         db.execute(f"UPDATE settings SET {sets} WHERE id=1", list(vals.values()))
+
+        # Versandverfahren und Graph-Optionen
+        method = 'graph' if request.form.get('mail_method') == 'graph' else 'smtp'
+        db.execute("UPDATE settings SET mail_method=?, graph_save_sent=? WHERE id=1",
+                   [method, 1 if request.form.get('graph_save_sent') else 0])
+
+        # Client-Secret nur überschreiben, wenn ein neues eingegeben wurde
+        new_secret = request.form.get('graph_client_secret', '')
+        if new_secret:
+            db.execute("UPDATE settings SET graph_client_secret=? WHERE id=1", [new_secret])
 
         # Logo-Größen (Schieberegler) – auf sinnvolle Bereiche begrenzen
         width_cm = clamp(request.form.get('logo_width_cm'),
@@ -386,7 +400,9 @@ def settings():
         return redirect(url_for('settings'))
 
     s = get_settings()
-    return render_template('settings.html', s=s)
+    return render_template('settings.html', s=s,
+                           mail_method=get_mail_method(s),
+                           graph_secret_set=bool(setting(s, 'graph_client_secret')))
 
 
 # ── Customers ──
@@ -1117,14 +1133,199 @@ def generate_doc(doc_type, doc_id):
     return send_file(output_path, as_attachment=True, download_name=output_name)
 
 
-# ── Email ──
+# ── E-Mail-Versand ──
+#
+# Zwei Verfahren, umschaltbar in den Einstellungen (settings.mail_method):
+#   'smtp'  – klassischer SMTP-Versand (Benutzername/Passwort)
+#   'graph' – Microsoft Graph, App-Registrierung im Entra Admin Center mit
+#             der Anwendungsberechtigung Mail.Send (Client-Credentials-Flow)
+
+GRAPH_TOKEN_URL = 'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token'
+GRAPH_SCOPE = 'https://graph.microsoft.com/.default'
+GRAPH_SENDMAIL_URL = 'https://graph.microsoft.com/v1.0/users/{sender}/sendMail'
+# sendMail überträgt Anhänge inline (base64). Größere Dateien bräuchten eine
+# Upload-Session – für Rechnungen im docx-Format reicht das Limit deutlich.
+GRAPH_MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024
+
+# Access-Token je (Tenant, Client-ID) zwischenspeichern; gilt rund 1 Stunde.
+_graph_token_cache = {}
+
+
+def setting(s, key, default=''):
+    """Liest ein Feld aus den Einstellungen, auch wenn die Spalte fehlt."""
+    try:
+        value = s[key]
+    except (KeyError, IndexError, TypeError):
+        return default
+    return default if value is None else value
+
+
+def get_mail_method(s):
+    return 'graph' if setting(s, 'mail_method', 'smtp') == 'graph' else 'smtp'
+
+
+def get_graph_sender(s):
+    """Postfach, aus dem gesendet wird (Fallback: SMTP-Absender, dann Firmen-E-Mail)."""
+    return (setting(s, 'graph_sender') or setting(s, 'smtp_from')
+            or setting(s, 'email')).strip()
+
+
+def mail_is_configured(s):
+    if get_mail_method(s) == 'graph':
+        return all([setting(s, 'graph_tenant_id').strip(),
+                    setting(s, 'graph_client_id').strip(),
+                    setting(s, 'graph_client_secret'),
+                    get_graph_sender(s)])
+    return bool(setting(s, 'smtp_host'))
+
+
+def mail_config_hint(s):
+    if get_mail_method(s) == 'graph':
+        return ('Microsoft-Graph-Versand ist nicht vollständig konfiguriert '
+                '(Verzeichnis-ID, Anwendungs-ID, Client-Secret, Absender-Postfach).')
+    return 'SMTP nicht konfiguriert. Bitte in Einstellungen hinterlegen.'
+
+
+def _graph_error(response):
+    """Fehlermeldung aus einer Graph-/Entra-Antwort lesbar aufbereiten."""
+    try:
+        data = response.json()
+    except ValueError:
+        return (response.text or '').strip()[:300]
+    if isinstance(data.get('error'), dict):
+        return data['error'].get('message', str(data['error']))[:300]
+    if data.get('error_description'):
+        return str(data['error_description']).splitlines()[0][:300]
+    return str(data)[:300]
+
+
+def get_graph_token(s):
+    """Access-Token per Client-Credentials-Flow holen (mit Cache)."""
+    tenant = setting(s, 'graph_tenant_id').strip()
+    client_id = setting(s, 'graph_client_id').strip()
+    secret = setting(s, 'graph_client_secret')
+
+    cache_key = (tenant, client_id)
+    cached = _graph_token_cache.get(cache_key)
+    if cached and cached['expires_at'] > time.time() + 60:
+        return cached['token']
+
+    response = requests.post(
+        GRAPH_TOKEN_URL.format(tenant=tenant),
+        data={'client_id': client_id, 'client_secret': secret,
+              'scope': GRAPH_SCOPE, 'grant_type': 'client_credentials'},
+        timeout=30)
+    if response.status_code != 200:
+        raise RuntimeError(f"Token-Abruf fehlgeschlagen ({response.status_code}): "
+                           f"{_graph_error(response)}")
+
+    data = response.json()
+    _graph_token_cache[cache_key] = {
+        'token': data['access_token'],
+        'expires_at': time.time() + int(data.get('expires_in', 3600)),
+    }
+    return data['access_token']
+
+
+def send_mail_graph(s, recipient, subject, body, attachments):
+    """Versand über Microsoft Graph (POST /users/{sender}/sendMail)."""
+    sender = get_graph_sender(s)
+    message = {
+        'subject': subject,
+        'body': {'contentType': 'Text', 'content': body},
+        'toRecipients': [{'emailAddress': {'address': recipient}}],
+    }
+    if attachments:
+        message['attachments'] = []
+        for filename, content in attachments:
+            if len(content) > GRAPH_MAX_ATTACHMENT_BYTES:
+                raise RuntimeError(
+                    f"Anhang {filename} ist zu groß für den Graph-Versand "
+                    f"(max. {GRAPH_MAX_ATTACHMENT_BYTES // (1024 * 1024)} MB).")
+            message['attachments'].append({
+                '@odata.type': '#microsoft.graph.fileAttachment',
+                'name': filename,
+                'contentType': 'application/octet-stream',
+                'contentBytes': base64.b64encode(content).decode('ascii'),
+            })
+
+    payload = {'message': message,
+               'saveToSentItems': bool(setting(s, 'graph_save_sent', 1))}
+    response = requests.post(
+        GRAPH_SENDMAIL_URL.format(sender=sender),
+        headers={'Authorization': f'Bearer {get_graph_token(s)}',
+                 'Content-Type': 'application/json'},
+        json=payload, timeout=60)
+    # Erfolg ist 202 Accepted ohne Inhalt
+    if response.status_code not in (200, 202):
+        raise RuntimeError(f"Graph-Versand fehlgeschlagen ({response.status_code}): "
+                           f"{_graph_error(response)}")
+
+
+def send_mail_smtp(s, recipient, subject, body, attachments):
+    """Versand über SMTP (STARTTLS)."""
+    msg = MIMEMultipart()
+    msg['From'] = setting(s, 'smtp_from')
+    msg['To'] = recipient
+    msg['Subject'] = subject
+    msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+    for filename, content in attachments:
+        part = MIMEBase('application', 'octet-stream')
+        part.set_payload(content)
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+        msg.attach(part)
+
+    with smtplib.SMTP(setting(s, 'smtp_host'), int(setting(s, 'smtp_port', 587) or 587)) as server:
+        server.starttls()
+        server.login(setting(s, 'smtp_user'), setting(s, 'smtp_pass'))
+        server.send_message(msg)
+
+
+def send_mail(s, recipient, subject, body, attachments=()):
+    """Verschickt eine E-Mail mit dem in den Einstellungen gewählten Verfahren."""
+    attachments = list(attachments)
+    if get_mail_method(s) == 'graph':
+        send_mail_graph(s, recipient, subject, body, attachments)
+    else:
+        send_mail_smtp(s, recipient, subject, body, attachments)
+
+
+@app.route('/settings/test-mail', methods=['POST'])
+@login_required
+def test_mail():
+    """Test-E-Mail mit den gespeicherten Einstellungen verschicken."""
+    s = get_settings()
+    if not mail_is_configured(s):
+        flash(mail_config_hint(s), 'error')
+        return redirect(url_for('settings'))
+
+    recipient = (request.form.get('test_recipient') or '').strip()
+    if not recipient:
+        recipient = (setting(s, 'graph_sender') if get_mail_method(s) == 'graph'
+                     else setting(s, 'smtp_from')) or setting(s, 'email')
+    if not recipient:
+        flash('Keine Empfängeradresse für den Test angegeben.', 'error')
+        return redirect(url_for('settings'))
+
+    verfahren = 'Microsoft Graph' if get_mail_method(s) == 'graph' else 'SMTP'
+    try:
+        send_mail(s, recipient, f'Testmail von {setting(s, "company_name") or "Micro-Fakt"}',
+                  f'Diese Test-E-Mail wurde über {verfahren} verschickt.\n'
+                  'Der E-Mail-Versand ist damit korrekt eingerichtet.')
+        flash(f'Test-E-Mail über {verfahren} an {recipient} gesendet.', 'success')
+    except Exception as e:
+        flash(f'Test-E-Mail fehlgeschlagen: {e}', 'error')
+    return redirect(url_for('settings'))
+
 
 @app.route('/send-email/<doc_type>/<int:doc_id>', methods=['POST'])
 @login_required
 def send_email(doc_type, doc_id):
     s = get_settings()
-    if not s['smtp_host']:
-        flash('SMTP nicht konfiguriert. Bitte in Einstellungen hinterlegen.', 'error')
+    if not mail_is_configured(s):
+        flash(mail_config_hint(s), 'error')
         return redirect(request.referrer or url_for('dashboard'))
 
     db = get_db()
@@ -1168,27 +1369,14 @@ def send_email(doc_type, doc_id):
         return redirect(request.referrer or url_for('dashboard'))
 
     try:
-        msg = MIMEMultipart()
-        msg['From'] = s['smtp_from']
-        msg['To'] = recipient
-        msg['Subject'] = subject
-
         body = f"Sehr geehrte(r) {cust['salutation']} {cust['last_name']},\n\n"
         body += f"anbei erhalten Sie {subject}.\n\n"
         body += f"Mit freundlichen Grüßen\n{s['owner_name']}\n{s['company_name']}"
-        msg.attach(MIMEText(body, 'plain', 'utf-8'))
 
         with open(filepath, 'rb') as f:
-            part = MIMEBase('application', 'octet-stream')
-            part.set_payload(f.read())
-            encoders.encode_base64(part)
-            part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
-            msg.attach(part)
+            attachments = [(filename, f.read())]
 
-        with smtplib.SMTP(s['smtp_host'], int(s['smtp_port'])) as server:
-            server.starttls()
-            server.login(s['smtp_user'], s['smtp_pass'])
-            server.send_message(msg)
+        send_mail(s, recipient, subject, body, attachments)
 
         # Log email
         db.execute("INSERT INTO email_log (doc_type,doc_id,recipient,subject) VALUES(?,?,?,?)",

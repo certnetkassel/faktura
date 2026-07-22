@@ -189,31 +189,149 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h2>E-Mail-Versand (Microsoft 365)</h2></div>
-    <div class="alert alert-info" style="margin-bottom:14px">
-      Voreingestellt für Microsoft 365 (SMTP: smtp.office365.com, Port 587, STARTTLS).
-      Trage deinen Microsoft 365 Benutzernamen (E-Mail) und dein App-Passwort ein.
+    <div class="card-header">
+      <h2>E-Mail-Versand (Microsoft 365)</h2>
+      <details class="info-box">
+        <summary class="info-toggle" title="Anleitung für das Entra Admin Center"
+                 aria-label="Anleitung für das Entra Admin Center">i</summary>
+        <div class="info-panel">
+          <h4>Microsoft Graph einrichten (Entra Admin Center)</h4>
+          <p>Einmalige Einrichtung unter
+            <a href="https://entra.microsoft.com" target="_blank" rel="noopener">entra.microsoft.com</a>
+            mit einem Konto, das Administratorrechte im Tenant hat.</p>
+          <ol>
+            <li><strong>App registrieren:</strong> <em>Identität → Anwendungen → App-Registrierungen →
+              Neue Registrierung</em>. Name z.&nbsp;B. „Micro-Fakt Mailversand“, Kontotyp
+              <em>Nur Konten in diesem Organisationsverzeichnis</em>, Redirect-URI bleibt leer.</li>
+            <li><strong>IDs kopieren:</strong> auf der Seite <em>Übersicht</em> der neuen App stehen
+              <em>Anwendungs-ID (Client)</em> und <em>Verzeichnis-ID (Mandant)</em>. Beide unten eintragen.</li>
+            <li><strong>Client-Secret erzeugen:</strong> <em>Zertifikate &amp; Geheimnisse →
+              Neuer geheimer Clientschlüssel</em>. Den <em>Wert</em> (nicht die Geheimnis-ID) sofort
+              kopieren – er wird nur einmal angezeigt. Ablaufdatum notieren, das Secret muss vor
+              Ablauf erneuert werden.</li>
+            <li><strong>Berechtigung setzen:</strong> <em>API-Berechtigungen → Berechtigung hinzufügen →
+              Microsoft Graph → Anwendungsberechtigungen → Mail.Send</em> auswählen und hinzufügen.
+              Danach <em>Administratorzustimmung für &lt;Tenant&gt; erteilen</em> klicken – ohne diese
+              Zustimmung schlägt der Versand mit „Access denied“ fehl.</li>
+            <li><strong>Absender-Postfach:</strong> die E-Mail-Adresse (UPN) des lizenzierten
+              Exchange-Online-Postfachs, aus dem gesendet wird – unten bei „Absender-Postfach“ eintragen.</li>
+            <li><strong>Zugriff einschränken (empfohlen):</strong> <em>Mail.Send</em> als
+              Anwendungsberechtigung erlaubt den Versand aus <strong>allen</strong> Postfächern des
+              Tenants. Per Exchange-Online-PowerShell auf das eine Postfach begrenzen:
+              <pre>New-ApplicationAccessPolicy `
+  -AppId &lt;Anwendungs-ID&gt; `
+  -PolicyScopeGroupId rechnungen@deinefirma.de `
+  -AccessRight RestrictAccess `
+  -Description "Nur Faktura-Postfach"</pre>
+            </li>
+          </ol>
+          <p class="info-note">Vorteil gegenüber SMTP: kein Benutzerpasswort in der App, funktioniert
+            auch bei aktivierter MFA und wenn Microsoft die SMTP-Basisauthentifizierung im Tenant
+            deaktiviert hat.</p>
+        </div>
+      </details>
+    </div>
+
+    <div class="form-group full" style="margin-bottom:14px">
+      <label>Versandverfahren</label>
+      <div class="radio-row">
+        <label class="radio-option">
+          <input type="radio" name="mail_method" value="graph" onchange="updateMailMethod()"
+                 {% if mail_method == 'graph' %}checked{% endif %}>
+          <span>Microsoft Graph <small>(empfohlen)</small></span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" name="mail_method" value="smtp" onchange="updateMailMethod()"
+                 {% if mail_method != 'graph' %}checked{% endif %}>
+          <span>SMTP <small>(Benutzer + Passwort)</small></span>
+        </label>
+      </div>
+    </div>
+
+    <div id="mailGraph">
+      <div class="alert alert-info" style="margin-bottom:14px">
+        Versand über die Microsoft-Graph-API mit einer App-Registrierung
+        (Anwendungsberechtigung <strong>Mail.Send</strong>). Die Einrichtungsschritte im
+        Entra Admin Center stehen im <strong>(i)</strong> oben rechts.
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Verzeichnis-ID (Mandant/Tenant)</label>
+          <input type="text" name="graph_tenant_id" value="{{ s.graph_tenant_id or '' }}"
+                 placeholder="00000000-0000-0000-0000-000000000000">
+        </div>
+        <div class="form-group">
+          <label>Anwendungs-ID (Client)</label>
+          <input type="text" name="graph_client_id" value="{{ s.graph_client_id or '' }}"
+                 placeholder="00000000-0000-0000-0000-000000000000">
+        </div>
+        <div class="form-group">
+          <label>Client-Secret {% if graph_secret_set %}(leer = unverändert){% endif %}</label>
+          <input type="password" name="graph_client_secret" autocomplete="new-password"
+                 placeholder="{% if graph_secret_set %}••••••••  gespeichert{% else %}Secret-Wert einfügen{% endif %}">
+          <small style="color:var(--muted)">Der <em>Wert</em> des geheimen Clientschlüssels, nicht die Geheimnis-ID.</small>
+        </div>
+        <div class="form-group">
+          <label>Absender-Postfach</label>
+          <input type="email" name="graph_sender" value="{{ s.graph_sender or '' }}"
+                 placeholder="rechnungen@deinefirma.de">
+          <small style="color:var(--muted)">Lizenziertes Exchange-Online-Postfach, aus dem gesendet wird.</small>
+        </div>
+        <div class="form-group full">
+          <label class="checkbox-option">
+            <input type="checkbox" name="graph_save_sent" value="1"
+                   {% if s.graph_save_sent is not defined or s.graph_save_sent %}checked{% endif %}>
+            <span>Kopie im Ordner „Gesendete Elemente“ des Postfachs ablegen</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <div id="mailSmtp">
+      <div class="alert alert-info" style="margin-bottom:14px">
+        Klassischer SMTP-Versand (smtp.office365.com, Port 587, STARTTLS). Benötigt ein
+        Benutzerpasswort bzw. App-Passwort und funktioniert nur, solange die
+        SMTP-Authentifizierung im Tenant aktiviert ist.
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>SMTP-Server</label>
+          <input type="text" name="smtp_host" value="{{ s.smtp_host }}" placeholder="smtp.office365.com">
+        </div>
+        <div class="form-group">
+          <label>Port</label>
+          <input type="number" name="smtp_port" value="{{ s.smtp_port }}">
+        </div>
+        <div class="form-group">
+          <label>Benutzername (E-Mail)</label>
+          <input type="text" name="smtp_user" value="{{ s.smtp_user }}" placeholder="name@deinefirma.de">
+        </div>
+        <div class="form-group">
+          <label>App-Passwort</label>
+          <input type="password" name="smtp_pass" value="{{ s.smtp_pass }}">
+        </div>
+        <div class="form-group">
+          <label>Absender-Adresse</label>
+          <input type="email" name="smtp_from" value="{{ s.smtp_from }}" placeholder="name@deinefirma.de">
+        </div>
+      </div>
+    </div>
+
+    <div class="section-divider">
+      <h3>Testversand</h3>
+      <p>Verschickt eine Test-E-Mail mit den <strong>gespeicherten</strong> Einstellungen –
+         Änderungen also vorher speichern.</p>
     </div>
     <div class="form-grid">
       <div class="form-group">
-        <label>SMTP-Server</label>
-        <input type="text" name="smtp_host" value="{{ s.smtp_host }}" placeholder="smtp.office365.com">
+        <label>Empfänger (leer = eigene Absenderadresse)</label>
+        <input type="email" name="test_recipient" placeholder="test@deinefirma.de">
       </div>
-      <div class="form-group">
-        <label>Port</label>
-        <input type="number" name="smtp_port" value="{{ s.smtp_port }}">
-      </div>
-      <div class="form-group">
-        <label>Benutzername (E-Mail)</label>
-        <input type="text" name="smtp_user" value="{{ s.smtp_user }}" placeholder="name@deinefirma.de">
-      </div>
-      <div class="form-group">
-        <label>App-Passwort</label>
-        <input type="password" name="smtp_pass" value="{{ s.smtp_pass }}">
-      </div>
-      <div class="form-group">
-        <label>Absender-Adresse</label>
-        <input type="email" name="smtp_from" value="{{ s.smtp_from }}" placeholder="name@deinefirma.de">
+      <div class="form-group" style="align-self:end">
+        <button type="submit" class="btn btn-secondary"
+                formaction="{{ url_for('test_mail') }}" formmethod="post" formnovalidate>
+          Test-E-Mail senden
+        </button>
       </div>
     </div>
   </div>
@@ -283,5 +401,15 @@
   }
 
   updateLogoPreview();
+
+  // Versandverfahren: nur die Felder des gewählten Verfahrens zeigen.
+  function updateMailMethod() {
+    const gewaehlt = document.querySelector('input[name="mail_method"]:checked');
+    const graph = gewaehlt && gewaehlt.value === 'graph';
+    document.getElementById('mailGraph').style.display = graph ? '' : 'none';
+    document.getElementById('mailSmtp').style.display = graph ? 'none' : '';
+  }
+
+  updateMailMethod();
 </script>
 {% endblock %}

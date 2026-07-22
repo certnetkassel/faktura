@@ -35,6 +35,12 @@ def init_db():
             smtp_user TEXT DEFAULT '',
             smtp_pass TEXT DEFAULT '',
             smtp_from TEXT DEFAULT '',
+            mail_method TEXT DEFAULT 'smtp',
+            graph_tenant_id TEXT DEFAULT '',
+            graph_client_id TEXT DEFAULT '',
+            graph_client_secret TEXT DEFAULT '',
+            graph_sender TEXT DEFAULT '',
+            graph_save_sent INTEGER DEFAULT 1,
             kleinunternehmer_text TEXT DEFAULT 'Gemäß §19 UStG wird keine Umsatzsteuer berechnet.',
             password_hash TEXT DEFAULT '',
             invoice_prefix TEXT DEFAULT 'RE',
@@ -192,6 +198,13 @@ def init_db():
 SETTINGS_MIGRATIONS = [
     ('logo_width_cm', 'REAL DEFAULT 4.0'),
     ('logo_sidebar_px', 'INTEGER DEFAULT 200'),
+    # E-Mail-Versand über Microsoft Graph (Alternative zu SMTP)
+    ('mail_method', "TEXT DEFAULT 'smtp'"),
+    ('graph_tenant_id', "TEXT DEFAULT ''"),
+    ('graph_client_id', "TEXT DEFAULT ''"),
+    ('graph_client_secret', "TEXT DEFAULT ''"),
+    ('graph_sender', "TEXT DEFAULT ''"),
+    ('graph_save_sent', 'INTEGER DEFAULT 1'),
 ]
 
 
