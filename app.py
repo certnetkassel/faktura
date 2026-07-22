@@ -1296,6 +1296,33 @@ def send_mail(s, recipient, subject, body, attachments=()):
         send_mail_smtp(s, recipient, subject, body, attachments)
 
 
+def mail_anrede(cust):
+    """Passende Briefanrede aus den Kundendaten."""
+    salutation = (cust['salutation'] or '').strip()
+    last_name = (cust['last_name'] or '').strip()
+    if salutation == 'Herr' and last_name:
+        return f"Sehr geehrter Herr {last_name},"
+    if salutation == 'Frau' and last_name:
+        return f"Sehr geehrte Frau {last_name},"
+    if last_name:
+        # Kein Geschlecht hinterlegt – neutrale, aber persönliche Anrede
+        vorname = (cust['first_name'] or '').strip()
+        return f"Guten Tag {(vorname + ' ' + last_name).strip()},"
+    return "Sehr geehrte Damen und Herren,"
+
+
+def mail_signatur(s):
+    """Grußformel mit Absenderdaten – ohne doppelte Zeilen."""
+    zeilen = ['Mit freundlichen Grüßen', '']
+    for wert in (setting(s, 'owner_name').strip(), setting(s, 'company_name').strip()):
+        if wert and wert not in zeilen:
+            zeilen.append(wert)
+    for wert in (setting(s, 'phone').strip(), setting(s, 'email').strip()):
+        if wert:
+            zeilen.append(wert)
+    return '\n'.join(zeilen)
+
+
 @app.route('/settings/test-mail', methods=['POST'])
 @login_required
 def test_mail():
@@ -1334,28 +1361,46 @@ def send_email(doc_type, doc_id):
 
     db = get_db()
 
-    # Determine recipient and subject
+    # Empfänger, Betreff, Anhang und Anschreiben je Dokumenttyp
     if doc_type == 'invoice':
         doc = db.execute("SELECT * FROM invoices WHERE id=?", [doc_id]).fetchone()
         cust = db.execute("SELECT * FROM customers WHERE id=?", [doc['customer_id']]).fetchone()
         subject = f"Rechnung {doc['invoice_nr']}"
         filename = f"{doc['invoice_nr']}.docx"
+        intro = (f"anbei erhalten Sie unsere Rechnung {doc['invoice_nr']} "
+                 f"vom {fmt_date(doc['date'])}.")
+        if doc['due_date']:
+            intro += f"\n\nWir bitten um Überweisung bis zum {fmt_date(doc['due_date'])}."
     elif doc_type == 'offer':
         doc = db.execute("SELECT * FROM offers WHERE id=?", [doc_id]).fetchone()
         cust = db.execute("SELECT * FROM customers WHERE id=?", [doc['customer_id']]).fetchone()
         subject = f"Angebot {doc['offer_nr']}"
         filename = f"{doc['offer_nr']}.docx"
+        intro = (f"vielen Dank für Ihre Anfrage. Anbei erhalten Sie unser Angebot "
+                 f"{doc['offer_nr']} vom {fmt_date(doc['date'])}.")
+        if doc['valid_until']:
+            intro += f"\n\nDas Angebot ist gültig bis zum {fmt_date(doc['valid_until'])}."
+        intro += "\n\nBei Fragen dazu melden Sie sich gerne."
     elif doc_type == 'credit':
         doc = db.execute("SELECT * FROM credits WHERE id=?", [doc_id]).fetchone()
         cust = db.execute("SELECT * FROM customers WHERE id=?", [doc['customer_id']]).fetchone()
         subject = f"Gutschrift {doc['credit_nr']}"
         filename = f"{doc['credit_nr']}.docx"
+        intro = (f"anbei erhalten Sie unsere Gutschrift {doc['credit_nr']} "
+                 f"vom {fmt_date(doc['date'])}.")
     elif doc_type == 'reminder':
         rem = db.execute("SELECT * FROM reminders WHERE id=?", [doc_id]).fetchone()
         inv = db.execute("SELECT * FROM invoices WHERE id=?", [rem['invoice_id']]).fetchone()
         cust = db.execute("SELECT * FROM customers WHERE id=?", [inv['customer_id']]).fetchone()
         subject = f"Zahlungserinnerung zu Rechnung {inv['invoice_nr']}"
         filename = f"Mahnung_{rem['level']}_{inv['invoice_nr']}.docx"
+        intro = (f"zu unserer Rechnung {inv['invoice_nr']} vom {fmt_date(inv['date'])} "
+                 f"konnten wir bisher keinen Zahlungseingang feststellen. "
+                 f"Anbei erhalten Sie die Einzelheiten.")
+        if rem['due_date']:
+            intro += (f"\n\nWir bitten um Ausgleich bis zum {fmt_date(rem['due_date'])}. "
+                      f"Sollte sich Ihre Zahlung damit überschnitten haben, "
+                      f"betrachten Sie dieses Schreiben bitte als gegenstandslos.")
     else:
         flash('Unbekannter Dokumenttyp.', 'error')
         return redirect(url_for('dashboard'))
@@ -1373,9 +1418,7 @@ def send_email(doc_type, doc_id):
         return redirect(request.referrer or url_for('dashboard'))
 
     try:
-        body = f"Sehr geehrte(r) {cust['salutation']} {cust['last_name']},\n\n"
-        body += f"anbei erhalten Sie {subject}.\n\n"
-        body += f"Mit freundlichen Grüßen\n{s['owner_name']}\n{s['company_name']}"
+        body = f"{mail_anrede(cust)}\n\n{intro}\n\n{mail_signatur(s)}"
 
         with open(filepath, 'rb') as f:
             attachments = [(filename, f.read())]
