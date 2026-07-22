@@ -387,7 +387,11 @@ def settings():
             file = request.files.get(logo_field)
             if file and file.filename:
                 filename = secure_filename(f"{logo_field}_{file.filename}")
-                file.save(os.path.join(LOGO_FOLDER, filename))
+                try:
+                    file.save(os.path.join(LOGO_FOLDER, filename))
+                except OSError as e:
+                    flash(f'Logo konnte nicht gespeichert werden: {e}', 'error')
+                    continue
                 db.execute(f"UPDATE settings SET {logo_field}=? WHERE id=1", [filename])
 
         new_pw = request.form.get('new_password', '')
@@ -1568,7 +1572,14 @@ def vorlage_upload():
         flash('Bitte eine .docx-Datei auswählen.', 'error')
         return redirect(url_for('vorlagen'))
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    file.save(os.path.join(UPLOAD_FOLDER, target))
+    try:
+        file.save(os.path.join(UPLOAD_FOLDER, target))
+    except OSError as e:
+        # Typischer Fall: die Datei kam per git pull als root ins Verzeichnis und
+        # gehört deshalb nicht dem Dienst-User (www-data).
+        flash(f'Vorlage konnte nicht gespeichert werden: {e}. '
+              f'Rechte prüfen: chown -R www-data:www-data {UPLOAD_FOLDER}', 'error')
+        return redirect(url_for('vorlagen'))
     flash(f'Vorlage "{target}" hochgeladen.', 'success')
     return redirect(url_for('vorlagen'))
 

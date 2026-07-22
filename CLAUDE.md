@@ -45,7 +45,14 @@ Verbindung also einfach per `ssh ionos-crm4`.
 
 1. Lokal ändern und committen/pushen
 2. Per SSH auf Server: `ssh ionos-crm4 "cd /opt/faktura && git pull"`
-3. `ssh ionos-crm4 "systemctl restart faktura"`
+3. `ssh ionos-crm4 "chown -R www-data:www-data /opt/faktura"`
+4. `ssh ionos-crm4 "systemctl restart faktura"`
+
+WICHTIG zu Schritt 3: `git pull` läuft als root, alle dabei geänderten Dateien
+gehören danach root. Der Dienst läuft aber als `www-data` und kann sie dann nicht
+mehr überschreiben — z.B. schlägt der Vorlagen-Upload mit `PermissionError` fehl,
+sobald `git pull` eine Datei in `vorlagen/` angefasst hat. Deshalb nach jedem Pull
+den chown ausführen.
 
 Alternativ: Dateien per SCP hochladen:
 ```bash
