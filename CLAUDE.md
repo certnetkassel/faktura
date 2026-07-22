@@ -13,7 +13,7 @@ Alle Antworten, Erklärungen, Commit-Messages und Code-Kommentare auf Deutsch. C
 - **Templating:** Jinja2
 - **CSS:** Eigenes CSS mit Dark/Light Theme (`static/style.css`)
 - **Dokumentgenerierung:** python-docx (Word-Vorlagen mit Platzhaltern)
-- **E-Mail:** SMTP (smtplib)
+- **E-Mail:** Microsoft Graph (`requests`, Client-Credentials) oder SMTP (smtplib)
 - **Webserver:** Gunicorn (2 Worker) hinter nginx
 - **Prozessmanagement:** systemd
 
@@ -115,7 +115,7 @@ W: ist davon nicht betroffen (lokaler subst-Alias, kein Netz-/rclone-Mount).
 ## Datenbank-Schema (SQLite)
 
 ### settings (id=1, Singleton)
-company_name, owner_name, street, zip, city, phone, email, tax_number, bank_name, iban, bic, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, password_hash, kleinunternehmer_text, invoice_prefix, offer_prefix, credit_prefix, next_invoice_nr, next_offer_nr, next_credit_nr, logo_dark, logo_light, logo_width_cm, logo_sidebar_px
+company_name, owner_name, street, zip, city, phone, email, tax_number, bank_name, iban, bic, smtp_host, smtp_port, smtp_user, smtp_pass, smtp_from, mail_method, graph_tenant_id, graph_client_id, graph_client_secret, graph_sender, graph_save_sent, password_hash, kleinunternehmer_text, invoice_prefix, offer_prefix, credit_prefix, next_invoice_nr, next_offer_nr, next_credit_nr, logo_dark, logo_light, logo_width_cm, logo_sidebar_px
 
 Nachträglich ergänzte Spalten werden von `migrate_db()` in database.py per
 `ALTER TABLE` nachgezogen (Liste `SETTINGS_MIGRATIONS`). Die Funktion läuft beim
@@ -185,6 +185,31 @@ Wird durch das in den Einstellungen hinterlegte Logo als Inline-Bild ersetzt (py
 (`settings.logo_width_cm`, 1–10 cm, Standard 4 cm = `LOGO_WIDTH_CM` in app.py als Fallback);
 das Seitenverhältnis bleibt erhalten. Funktioniert in Body, Tabellen und Kopf-/Fußzeilen, auch wenn Word den Marker über mehrere Runs zerrissen hat. Ist kein Logo hinterlegt, wird der Marker-Text einfach entfernt (kein sichtbares `{{logo}}`).
 
+## E-Mail-Versand
+
+Zwei Verfahren, umschaltbar in den Einstellungen (`settings.mail_method`):
+
+- **`graph` (empfohlen):** Microsoft Graph, App-Registrierung im Entra Admin Center
+  mit der **Anwendungsberechtigung Mail.Send** und erteilter Administratorzustimmung.
+  Token per Client-Credentials-Flow von
+  `https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token` (Scope
+  `https://graph.microsoft.com/.default`), Versand per
+  `POST https://graph.microsoft.com/v1.0/users/{postfach}/sendMail`. Anhänge werden
+  inline als base64 übertragen (Limit 3 MB, `GRAPH_MAX_ATTACHMENT_BYTES`). Das Token
+  wird je (Tenant, Client-ID) im Prozess zwischengespeichert (`_graph_token_cache`).
+  Benötigte Einstellungen: Verzeichnis-ID, Anwendungs-ID, Client-Secret,
+  Absender-Postfach (Fallback: `smtp_from`, dann `email`).
+- **`smtp`:** klassisch über smtplib mit STARTTLS.
+
+Beide laufen über `send_mail(s, empfänger, betreff, text, anhänge)` in app.py.
+Die Schritt-für-Schritt-Anleitung für das Entra Admin Center steckt als (i)-Panel
+in `templates/settings.html`. Testversand: `POST /settings/test-mail` (Button in den
+Einstellungen, nutzt die **gespeicherten** Werte).
+
+Hinweis: `Mail.Send` als Anwendungsberechtigung erlaubt den Versand aus allen
+Postfächern des Tenants — Einschränkung per Exchange-Online
+`New-ApplicationAccessPolicy` empfohlen (steht auch im (i)-Panel).
+
 ## Authentifizierung
 
 - Einfaches Passwort-Login (kein Benutzername, Single-User)
@@ -206,7 +231,7 @@ Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften �
 - Angebot → Rechnung umwandeln (kopiert Positionen)
 - Mahnwesen (mehrstufig, mit Mahngebühr)
 - Word-Dokumentgenerierung aus Vorlagen
-- E-Mail-Versand (SMTP, mit Dokument als Anhang)
+- E-Mail-Versand (Microsoft Graph oder SMTP, mit Dokument als Anhang) inkl. Testversand
 - Vorlagenverwaltung (Upload, Download, Muster mit Beispieldaten)
 - Dark/Light Theme
 - Logo-Upload (Dark + Light Variante)
