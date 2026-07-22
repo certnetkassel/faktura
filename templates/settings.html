@@ -200,19 +200,23 @@
             <a href="https://entra.microsoft.com" target="_blank" rel="noopener">entra.microsoft.com</a>
             mit einem Konto, das Administratorrechte im Tenant hat.</p>
           <ol>
-            <li><strong>App registrieren:</strong> <em>Identität → Anwendungen → App-Registrierungen →
-              Neue Registrierung</em>. Name z.&nbsp;B. „Micro-Fakt Mailversand“, Kontotyp
-              <em>Nur Konten in diesem Organisationsverzeichnis</em>, Redirect-URI bleibt leer.</li>
+            <li><strong>App registrieren:</strong> <em>Entra ID → App-Registrierungen →
+              + Neue Registrierung</em>. Name z.&nbsp;B. „Micro-Fakt Mailversand“, Unterstützte
+              Kontotypen: <em>Nur ein Mandant</em>, Redirect-URI bleibt leer. Unten auf
+              <em>Registrieren</em> klicken.</li>
             <li><strong>IDs kopieren:</strong> auf der Seite <em>Übersicht</em> der neuen App stehen
-              <em>Anwendungs-ID (Client)</em> und <em>Verzeichnis-ID (Mandant)</em>. Beide unten eintragen.</li>
-            <li><strong>Client-Secret erzeugen:</strong> <em>Zertifikate &amp; Geheimnisse →
-              Neuer geheimer Clientschlüssel</em>. Den <em>Wert</em> (nicht die Geheimnis-ID) sofort
-              kopieren – er wird nur einmal angezeigt. Ablaufdatum notieren, das Secret muss vor
-              Ablauf erneuert werden.</li>
-            <li><strong>Berechtigung setzen:</strong> <em>API-Berechtigungen → Berechtigung hinzufügen →
-              Microsoft Graph → Anwendungsberechtigungen → Mail.Send</em> auswählen und hinzufügen.
-              Danach <em>Administratorzustimmung für &lt;Tenant&gt; erteilen</em> klicken – ohne diese
-              Zustimmung schlägt der Versand mit „Access denied“ fehl.</li>
+              <em>Anwendungs-ID (Client)</em> und <em>Verzeichnis-ID (Mandant)</em>. Beides muss hier
+              in der App (unten) eingetragen werden.</li>
+            <li><strong>Client-Secret erzeugen:</strong> im eingerückten Menü
+              <em>Zertifikate &amp; Geheimnisse → + Neuer geheimer Clientschlüssel</em>. Name eingeben
+              und Dauer auswählen (max. 24 Monate), dann auf <em>Hinzufügen</em> klicken. Den
+              <em>Wert</em> (nicht die Geheimnis-ID) sofort kopieren – er wird nur einmal angezeigt.
+              Ablaufdatum notieren, das Secret muss vor Ablauf erneuert werden.</li>
+            <li><strong>Berechtigung setzen:</strong> im eingerückten Menü <em>API-Berechtigungen</em>
+              wählen → <em>+ Berechtigung hinzufügen → Microsoft Graph → Anwendungsberechtigungen →
+              Mail.Send</em> auswählen und <em>Berechtigungen hinzufügen</em>. Danach
+              <em>Administratorzustimmung für &lt;Tenant&gt; erteilen</em> und <em>Ja</em> klicken –
+              ohne diese Zustimmung schlägt der Versand mit „Access denied“ fehl.</li>
             <li><strong>Absender-Postfach:</strong> die E-Mail-Adresse (UPN) des lizenzierten
               Exchange-Online-Postfachs, aus dem gesendet wird – unten bei „Absender-Postfach“ eintragen.</li>
             <li><strong>Zugriff einschränken (empfohlen):</strong> <em>Mail.Send</em> als
