@@ -129,6 +129,16 @@ Nachträglich ergänzte Spalten werden von `migrate_db()` in database.py per
 Import von app.py, weil unter Gunicorn der `__main__`-Block nicht ausgeführt wird.
 Neue Settings-Spalten deshalb IMMER zusätzlich dort eintragen.
 
+### users
+id, email (UNIQUE), password_hash, first_name, last_name, is_admin (0/1), created_at
+
+Benutzerverwaltung (Mehrbenutzer). Angelegt in database.py (init_db + migrate_db).
+`migrate_db()` zieht die Tabelle in bestehenden Datenbanken nach und legt beim
+ersten Lauf den Startbenutzer `dirk@dirkhildebrand.de` (Admin) aus dem bisherigen
+`settings.password_hash` an — das gewohnte Passwort bleibt also gültig, nur die
+Anmeldung erfolgt jetzt mit E-Mail + Passwort. `settings.password_hash` wird vom
+Login nicht mehr verwendet (Altlast, bleibt für die einmalige Migration stehen).
+
 ### customers
 id, customer_nr (Text, z.B. K-0001), company, salutation, first_name, last_name, street, zip, city, email, phone, notes
 
@@ -219,15 +229,26 @@ Postfächern des Tenants — Einschränkung per Exchange-Online
 
 ## Authentifizierung
 
-- Einfaches Passwort-Login (kein Benutzername, Single-User)
-- Passwort-Hash in settings.password_hash (werkzeug.security)
-- Session via Flask-Session (Cookie-basiert)
+- Mehrbenutzer-Login mit **E-Mail + Passwort** (Tabelle `users`)
+- Passwort-Hash je Benutzer in `users.password_hash` (werkzeug.security)
+- Session via Flask-Session (Cookie-basiert), speichert `session['user_id']`
+- `login_required` prüft `session['user_id']`; `admin_required` zusätzlich
+  `users.is_admin` (Nicht-Admins werden mit Flash aufs Dashboard geleitet)
+- `current_user()` liefert die Row des angemeldeten Benutzers; per
+  `context_processor` als `current_user` in allen Templates verfügbar
 - SECRET_KEY ist fest in config.py (NICHT os.urandom!)
-- Beim ersten Start wird das Passwort gesetzt
+- Erststart (frische DB ohne Benutzer): der Login legt `dirk@dirkhildebrand.de`
+  als ersten Admin mit dem eingegebenen Passwort an
+- Benutzerverwaltung (nur Admins): `/users`, `/users/new`, `/users/<id>/edit`,
+  `/users/<id>/delete`. Geschützt: letzter Admin kann weder gelöscht noch
+  degradiert werden; Selbstlöschung verhindert. Gemeinsame Speicherlogik:
+  `_save_user()` in app.py.
+- „Mein Passwort ändern" in den Einstellungen ändert `users.password_hash` des
+  angemeldeten Benutzers (nicht mehr `settings.password_hash`)
 
 ## Navigation (Sidebar in base.html)
 
-Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften → Mahnungen → Vorlagen → Einstellungen
+Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften → Mahnungen → Vorlagen → Einstellungen → Benutzer (nur Admins)
 
 ## Features
 
