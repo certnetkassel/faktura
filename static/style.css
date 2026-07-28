@@ -272,7 +272,8 @@
   margin-bottom: 20px;
 }
 .login-logo img {
-  height: 150px;
+  height: 64px;
+  max-width: 100%;
   object-fit: contain;
 }
 
