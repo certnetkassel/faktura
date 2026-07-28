@@ -57,29 +57,24 @@
 /* ── Theme Switch (Sonne = hell / Mond = dunkel) ── */
 .theme-switch {
   display: flex;
-  gap: 8px;
-  margin-bottom: 12px;
+  gap: 16px;
+  padding: 4px 20px 12px;
 }
 .theme-btn {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 0;
   cursor: pointer;
   color: var(--muted);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   line-height: 1;
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border: none;
   background: none;
-  transition: color var(--transition), background var(--transition), border-color var(--transition);
+  padding: 0;
+  opacity: 0.5;
+  transition: color var(--transition), opacity var(--transition);
 }
-.theme-btn:hover { color: var(--accent); }
+.theme-btn:hover { color: var(--accent); opacity: 1; }
 .theme-btn.active {
   color: var(--accent);
-  border-color: var(--accent);
-  background: rgba(108, 92, 231, 0.12);
+  opacity: 1;
 }
 
 /* ── Logo ── */
