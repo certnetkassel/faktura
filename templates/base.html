@@ -54,9 +54,10 @@
         </a></li>
       </ul>
       <div class="sidebar-footer">
-        <button class="theme-toggle" onclick="toggleTheme()">
-          <span id="themeIcon">&#9788;</span> <span id="themeLabel">Helles Design</span>
-        </button>
+        <div class="theme-switch">
+          <button type="button" class="theme-btn" id="themeLight" onclick="setTheme('light')" title="Helle Ansicht" aria-label="Helle Ansicht">&#9788;</button>
+          <button type="button" class="theme-btn" id="themeDark" onclick="setTheme('dark')" title="Dunkle Ansicht" aria-label="Dunkle Ansicht">&#9790;</button>
+        </div>
         <a href="{{ url_for('logout') }}">
           <span>&#10140;</span> Abmelden
         </a>
@@ -80,24 +81,18 @@
       document.getElementById('sidebarOverlay').classList.toggle('open');
     }
 
-    function toggleTheme() {
-      const html = document.documentElement;
-      const isDark = html.getAttribute('data-theme') === 'dark';
-      const newTheme = isDark ? 'light' : 'dark';
-      html.setAttribute('data-theme', newTheme);
-      localStorage.setItem('faktura-theme', newTheme);
-      updateThemeUI(newTheme);
+    function setTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('faktura-theme', theme);
+      updateThemeUI(theme);
     }
 
     function updateThemeUI(theme) {
-      const icon = document.getElementById('themeIcon');
-      const label = document.getElementById('themeLabel');
-      if (theme === 'light') {
-        icon.innerHTML = '&#9790;';
-        label.textContent = 'Dunkles Design';
-      } else {
-        icon.innerHTML = '&#9788;';
-        label.textContent = 'Helles Design';
+      const lightBtn = document.getElementById('themeLight');
+      const darkBtn = document.getElementById('themeDark');
+      if (lightBtn && darkBtn) {
+        lightBtn.classList.toggle('active', theme === 'light');
+        darkBtn.classList.toggle('active', theme === 'dark');
       }
       // Toggle logos
       document.querySelectorAll('.logo-dark').forEach(el => el.style.display = theme === 'dark' ? '' : 'none');
