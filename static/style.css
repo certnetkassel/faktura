@@ -370,6 +370,17 @@ a:hover { color: var(--accent-hover); }
   border-top: 1px solid var(--border);
 }
 
+.sidebar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  color: var(--text);
+  font-size: .85rem;
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+
 .sidebar-footer a {
   display: flex;
   align-items: center;
@@ -631,6 +642,15 @@ table .actions {
 .badge-yellow { background: var(--yellow-bg); color: var(--yellow); }
 .badge-blue { background: var(--blue-bg); color: var(--blue); }
 .badge-muted { background: #2a2d3a; color: var(--muted); }
+.badge-admin {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 600;
+  background: var(--accent);
+  color: #fff;
+}
 
 /* ── Alerts ── */
 .alert {

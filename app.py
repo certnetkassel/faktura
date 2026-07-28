@@ -37,10 +37,35 @@ except Exception as e:  # z.B. beim allerersten Start ohne Datenbank
 def login_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not session.get('logged_in'):
+        if not session.get('user_id'):
             return redirect(url_for('login'))
         return f(*args, **kwargs)
     return decorated
+
+
+def admin_required(f):
+    """Nur für Administratoren. Nicht-Admins landen auf dem Dashboard."""
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        u = current_user()
+        if not u:
+            return redirect(url_for('login'))
+        if not u['is_admin']:
+            flash('Dafür fehlen dir die Rechte (nur Administratoren).', 'error')
+            return redirect(url_for('dashboard'))
+        return f(*args, **kwargs)
+    return decorated
+
+
+def current_user():
+    """Der aktuell angemeldete Benutzer als Row oder None."""
+    uid = session.get('user_id')
+    if not uid:
+        return None
+    db = get_db()
+    u = db.execute("SELECT * FROM users WHERE id=?", [uid]).fetchone()
+    db.close()
+    return u
 
 
 def get_settings():
@@ -251,45 +276,60 @@ def inject_settings():
     """Make settings available in all templates (for logo display)."""
     try:
         s = get_settings()
-        return {'settings': s, 'logo_sidebar_px': get_logo_sidebar_px(s)}
+        return {'settings': s, 'logo_sidebar_px': get_logo_sidebar_px(s),
+                'current_user': current_user()}
     except Exception:
-        return {'settings': {}, 'logo_sidebar_px': SIDEBAR_LOGO_PX}
+        return {'settings': {}, 'logo_sidebar_px': SIDEBAR_LOGO_PX, 'current_user': None}
 
 
 # ── Auth ──
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
-    s = get_settings()
-    if not s['password_hash']:
-        # First run: set password
+    db = get_db()
+    user_count = db.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+
+    # Erststart (frische Datenbank ohne Benutzer): ersten Admin anlegen.
+    if user_count == 0:
         if request.method == 'POST':
             pw = request.form.get('password', '')
             if len(pw) < 4:
                 flash('Passwort muss mindestens 4 Zeichen haben.', 'error')
-                return render_template('login.html')
-            db = get_db()
-            db.execute("UPDATE settings SET password_hash=? WHERE id=1",
-                       [generate_password_hash(pw)])
+                db.close()
+                return render_template('login.html', first_run=True)
+            db.execute(
+                "INSERT INTO users (email, password_hash, first_name, last_name, is_admin) "
+                "VALUES (?, ?, ?, ?, 1)",
+                ['dirk@dirkhildebrand.de', generate_password_hash(pw), 'Dirk', 'Hildebrand'])
             db.commit()
+            new_id = db.execute("SELECT id FROM users WHERE email=?",
+                                ['dirk@dirkhildebrand.de']).fetchone()['id']
             db.close()
-            session['logged_in'] = True
-            flash('Passwort gesetzt. Willkommen!', 'success')
+            session['user_id'] = new_id
+            flash('Startbenutzer dirk@dirkhildebrand.de angelegt. Willkommen!', 'success')
             return redirect(url_for('dashboard'))
-        return render_template('login.html')
+        db.close()
+        return render_template('login.html', first_run=True)
 
     if request.method == 'POST':
+        email = request.form.get('email', '').strip().lower()
         pw = request.form.get('password', '')
-        if check_password_hash(s['password_hash'], pw):
-            session['logged_in'] = True
+        user = db.execute("SELECT * FROM users WHERE email=?", [email]).fetchone()
+        db.close()
+        if user and check_password_hash(user['password_hash'], pw):
+            session['user_id'] = user['id']
             return redirect(url_for('dashboard'))
-        flash('Falsches Passwort.', 'error')
+        flash('E-Mail oder Passwort falsch.', 'error')
+        return render_template('login.html')
+
+    db.close()
     return render_template('login.html')
 
 
 @app.route('/logout')
 def logout():
-    session.pop('logged_in', None)
+    session.pop('user_id', None)
+    session.pop('logged_in', None)  # Altlast aus dem Einzel-Passwort-Login
     return redirect(url_for('login'))
 
 
@@ -396,8 +436,11 @@ def settings():
 
         new_pw = request.form.get('new_password', '')
         if new_pw:
-            db.execute("UPDATE settings SET password_hash=? WHERE id=1",
-                       [generate_password_hash(new_pw)])
+            if len(new_pw) < 4:
+                flash('Passwort muss mindestens 4 Zeichen haben.', 'error')
+            else:
+                db.execute("UPDATE users SET password_hash=? WHERE id=?",
+                           [generate_password_hash(new_pw), session['user_id']])
         db.commit()
         db.close()
         flash('Einstellungen gespeichert.', 'success')
@@ -407,6 +450,129 @@ def settings():
     return render_template('settings.html', s=s,
                            mail_method=get_mail_method(s),
                            graph_secret_set=bool(setting(s, 'graph_client_secret')))
+
+
+# ── Benutzerverwaltung (nur Admins) ──
+
+@app.route('/users')
+@admin_required
+def users():
+    db = get_db()
+    all_users = db.execute(
+        "SELECT * FROM users ORDER BY is_admin DESC, last_name, first_name").fetchall()
+    db.close()
+    return render_template('users.html', users=all_users)
+
+
+@app.route('/users/new', methods=['GET', 'POST'])
+@admin_required
+def user_new():
+    if request.method == 'POST':
+        error = _save_user(None)
+        if error:
+            flash(error, 'error')
+            return render_template('user_form.html', user=None, form=request.form)
+        flash('Benutzer angelegt.', 'success')
+        return redirect(url_for('users'))
+    return render_template('user_form.html', user=None, form={})
+
+
+@app.route('/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@admin_required
+def user_edit(user_id):
+    db = get_db()
+    user = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
+    db.close()
+    if not user:
+        flash('Benutzer nicht gefunden.', 'error')
+        return redirect(url_for('users'))
+    if request.method == 'POST':
+        error = _save_user(user_id)
+        if error:
+            flash(error, 'error')
+            return render_template('user_form.html', user=user, form=request.form)
+        flash('Benutzer gespeichert.', 'success')
+        return redirect(url_for('users'))
+    return render_template('user_form.html', user=user, form=user)
+
+
+@app.route('/users/<int:user_id>/delete', methods=['POST'])
+@admin_required
+def user_delete(user_id):
+    if user_id == session.get('user_id'):
+        flash('Du kannst dich nicht selbst löschen.', 'error')
+        return redirect(url_for('users'))
+    db = get_db()
+    target = db.execute("SELECT * FROM users WHERE id=?", [user_id]).fetchone()
+    if not target:
+        db.close()
+        flash('Benutzer nicht gefunden.', 'error')
+        return redirect(url_for('users'))
+    # Letzten Administrator nicht löschen
+    if target['is_admin']:
+        admin_count = db.execute(
+            "SELECT COUNT(*) FROM users WHERE is_admin=1").fetchone()[0]
+        if admin_count <= 1:
+            db.close()
+            flash('Der letzte Administrator kann nicht gelöscht werden.', 'error')
+            return redirect(url_for('users'))
+    db.execute("DELETE FROM users WHERE id=?", [user_id])
+    db.commit()
+    db.close()
+    flash('Benutzer gelöscht.', 'success')
+    return redirect(url_for('users'))
+
+
+def _save_user(user_id):
+    """Legt einen Benutzer an oder aktualisiert ihn. Gibt eine Fehlermeldung
+    (String) zurück oder None bei Erfolg. Erwartet ein offenes request.form."""
+    email = request.form.get('email', '').strip().lower()
+    first_name = request.form.get('first_name', '').strip()
+    last_name = request.form.get('last_name', '').strip()
+    pw = request.form.get('password', '')
+    is_admin = 1 if request.form.get('is_admin') else 0
+
+    if not email or '@' not in email:
+        return 'Bitte eine gültige E-Mail-Adresse angeben.'
+    if user_id is None and len(pw) < 4:
+        return 'Passwort muss mindestens 4 Zeichen haben.'
+    if pw and len(pw) < 4:
+        return 'Passwort muss mindestens 4 Zeichen haben.'
+
+    db = get_db()
+    # E-Mail-Eindeutigkeit prüfen
+    clash = db.execute("SELECT id FROM users WHERE email=? AND id IS NOT ?",
+                       [email, user_id]).fetchone()
+    if clash:
+        db.close()
+        return 'Diese E-Mail-Adresse ist bereits vergeben.'
+
+    # Verhindern, dass sich der letzte Admin selbst die Admin-Rechte entzieht
+    if user_id is not None and not is_admin:
+        was_admin = db.execute("SELECT is_admin FROM users WHERE id=?",
+                               [user_id]).fetchone()['is_admin']
+        if was_admin:
+            admin_count = db.execute(
+                "SELECT COUNT(*) FROM users WHERE is_admin=1").fetchone()[0]
+            if admin_count <= 1:
+                db.close()
+                return 'Der letzte Administrator muss Administrator bleiben.'
+
+    if user_id is None:
+        db.execute(
+            "INSERT INTO users (email, password_hash, first_name, last_name, is_admin) "
+            "VALUES (?, ?, ?, ?, ?)",
+            [email, generate_password_hash(pw), first_name, last_name, is_admin])
+    else:
+        db.execute(
+            "UPDATE users SET email=?, first_name=?, last_name=?, is_admin=? WHERE id=?",
+            [email, first_name, last_name, is_admin, user_id])
+        if pw:
+            db.execute("UPDATE users SET password_hash=? WHERE id=?",
+                       [generate_password_hash(pw), user_id])
+    db.commit()
+    db.close()
+    return None
 
 
 # ── Customers ──

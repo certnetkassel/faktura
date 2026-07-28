@@ -52,8 +52,19 @@
         <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">
           <span class="nav-icon">&#9881;</span> Einstellungen
         </a></li>
+        {% if current_user and current_user.is_admin %}
+        <li><a href="{{ url_for('users') }}" class="{% if request.endpoint in ['users','user_new','user_edit'] %}active{% endif %}">
+          <span class="nav-icon">&#128101;</span> Benutzer
+        </a></li>
+        {% endif %}
       </ul>
       <div class="sidebar-footer">
+        {% if current_user %}
+        <div class="sidebar-user">
+          {{ current_user.first_name }} {{ current_user.last_name }}
+          {% if current_user.is_admin %}<span class="badge-admin">Admin</span>{% endif %}
+        </div>
+        {% endif %}
         <div class="theme-switch">
           <button type="button" class="theme-btn" id="themeLight" onclick="setTheme('light')" title="Helle Ansicht" aria-label="Helle Ansicht">&#9788;</button>
           <button type="button" class="theme-btn" id="themeDark" onclick="setTheme('dark')" title="Dunkle Ansicht" aria-label="Dunkle Ansicht">&#9790;</button>

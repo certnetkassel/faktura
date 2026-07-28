@@ -22,7 +22,11 @@
       {% else %}
         <h1>Fak<span style="color:#6c5ce7">tura</span></h1>
       {% endif %}
-      <p>Bitte melde dich an</p>
+      {% if first_run %}
+        <p>Erststart – lege das Passwort für den Startbenutzer<br><strong>dirk@dirkhildebrand.de</strong> fest</p>
+      {% else %}
+        <p>Bitte melde dich an</p>
+      {% endif %}
 
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}
@@ -31,11 +35,20 @@
       {% endwith %}
 
       <form method="POST">
+        {% if not first_run %}
+        <div class="form-group">
+          <label>E-Mail</label>
+          <input type="email" name="email" autocomplete="username" autofocus required>
+        </div>
+        {% endif %}
         <div class="form-group">
           <label>Passwort</label>
-          <input type="password" name="password" autofocus required>
+          <input type="password" name="password" autocomplete="current-password"
+                 {% if first_run %}autofocus{% endif %} required>
         </div>
-        <button type="submit" class="btn btn-primary">Anmelden</button>
+        <button type="submit" class="btn btn-primary">
+          {% if first_run %}Passwort festlegen{% else %}Anmelden{% endif %}
+        </button>
       </form>
     </div>
   </div>

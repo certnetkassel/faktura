@@ -341,11 +341,12 @@
   </div>
 
   <div class="card">
-    <div class="card-header"><h2>Passwort ändern</h2></div>
+    <div class="card-header"><h2>Mein Passwort ändern</h2></div>
     <div class="form-grid">
       <div class="form-group">
         <label>Neues Passwort (leer = unverändert)</label>
-        <input type="password" name="new_password" placeholder="Neues Passwort eingeben...">
+        <input type="password" name="new_password" autocomplete="new-password" placeholder="Neues Passwort eingeben...">
+        <small style="color:var(--muted)">Ändert das Passwort des angemeldeten Benutzers{% if current_user %} ({{ current_user.email }}){% endif %}.</small>
       </div>
     </div>
   </div>

@@ -53,6 +53,16 @@ def init_db():
             logo_sidebar_px INTEGER DEFAULT 200
         );
 
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            first_name TEXT DEFAULT '',
+            last_name TEXT DEFAULT '',
+            is_admin INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
         CREATE TABLE IF NOT EXISTS customers (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             customer_nr TEXT UNIQUE NOT NULL,
@@ -216,6 +226,29 @@ def migrate_db():
     for column, definition in SETTINGS_MIGRATIONS:
         if column not in existing:
             c.execute(f"ALTER TABLE settings ADD COLUMN {column} {definition}")
+
+    # Benutzerverwaltung: users-Tabelle in bestehenden Datenbanken nachziehen
+    # und den Startbenutzer aus dem bisherigen Einzel-Passwort übernehmen,
+    # damit die gewohnte Anmeldung (jetzt mit E-Mail) weiter funktioniert.
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        first_name TEXT DEFAULT '',
+        last_name TEXT DEFAULT '',
+        is_admin INTEGER DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+    user_count = c.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+    if user_count == 0:
+        row = c.execute("SELECT password_hash FROM settings WHERE id=1").fetchone()
+        pw_hash = row['password_hash'] if row else ''
+        if pw_hash:
+            c.execute(
+                "INSERT INTO users (email, password_hash, first_name, last_name, is_admin) "
+                "VALUES (?, ?, ?, ?, 1)",
+                ['dirk@dirkhildebrand.de', pw_hash, 'Dirk', 'Hildebrand'])
+
     conn.commit()
     conn.close()
 
