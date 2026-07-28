@@ -254,7 +254,12 @@ Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften �
 - venv und __pycache__ sind NICHT im Git
 - Gunicorn läuft mit 2 Workern — SECRET_KEY MUSS fest sein (nicht os.urandom)
 - Bei Änderungen an app.py oder config.py immer `systemctl restart faktura`
-- Bei Änderungen an Templates oder CSS reicht meist ein Browser-Refresh (Strg+Shift+R)
+- Bei Änderungen an Templates (Jinja2/HTML) ebenfalls `systemctl restart faktura`:
+  Gunicorn läuft ohne Debug, Jinja2 cacht die kompilierten Templates im
+  Worker-Speicher und prüft die Datei nicht bei jedem Request. Ohne Neustart
+  liefern die Worker weiter die ALTE Vorlage, obwohl die Datei auf der Platte neu ist.
+- Bei reinen CSS-Änderungen reicht ein Hard-Refresh im Browser (Strg+Shift+R);
+  die Datei wird als statisches File direkt ausgeliefert (kein Template-Cache).
 
 ## Offene Punkte / Geplante Erweiterungen
 
