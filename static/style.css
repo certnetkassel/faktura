@@ -653,7 +653,19 @@ table .actions {
 }
 
 /* ── Status-Dropdown (Rechnungsliste) ── */
-.status-form { margin: 0; }
+.status-form { margin: 0; position: relative; display: inline-block; }
+/* Dropdown-Pfeil als eigenes Zeichen über dem Feld (currentColor funktioniert
+   in Hintergrund-SVGs nicht zuverlässig, deshalb ein sichtbares ::after). */
+.status-form::after {
+  content: "\25BE";
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: .7rem;
+  color: var(--text2);
+}
 .status-select {
   padding: 4px 26px 4px 12px;
   border-radius: 20px;
@@ -662,10 +674,8 @@ table .actions {
   border: 1px solid transparent;
   cursor: pointer;
   -webkit-appearance: none;
+  -moz-appearance: none;
   appearance: none;
-  background-repeat: no-repeat;
-  background-position: right 9px center;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath fill='currentColor' d='M4 6 0 0h8z'/%3E%3C/svg%3E");
 }
 .status-select:focus { outline: none; border-color: var(--accent); }
 .status-select option { background: var(--card); color: var(--text); }
