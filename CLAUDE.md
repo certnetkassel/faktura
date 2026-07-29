@@ -169,6 +169,22 @@ id, invoice_id (FK→invoices), level (int, Mahnstufe), date, due_date, fee, not
 ### email_log
 id, doc_type, doc_id, recipient, subject, sent_at
 
+### email_templates
+doc_type (PK: invoice/offer/credit/reminder), subject, body
+
+Anpassbare E-Mail-Anschreiben je Belegart (Betreff + Text mit Platzhaltern).
+Standardtexte in `database.py` (`EMAIL_TEMPLATE_DEFAULTS`), von `seed_email_templates()`
+per `INSERT OR IGNORE` angelegt (in init_db + migrate_db, idempotent). `send_email`
+lädt die Vorlage (`get_email_template`, Fallback auf die Defaults) und ersetzt die
+Platzhalter (`apply_placeholders`). Verfügbare Platzhalter: `{{anrede}}`, `{{signatur}}`,
+`{{betrag}}`, belegspezifisch `{{rechnung_nr}}`/`{{rechnung_datum}}`/`{{faellig_datum}}`,
+`{{angebot_nr}}`/`{{angebot_datum}}`/`{{gueltig_bis}}`, `{{gutschrift_nr}}`/`{{gutschrift_datum}}`,
+`{{mahnung_stufe}}`/`{{mahnung_frist}}`/`{{mahngebuehr}}`/`{{rechnung_faellig_datum}}`,
+sowie `{{kunde_firma}}`/`{{kunde_vorname}}`/`{{kunde_nachname}}`/`{{firma}}`/`{{inhaber}}`.
+Bearbeiten unter `/email-vorlagen` (Speichern: `/email-vorlagen/save/<doc_type>`,
+Zurücksetzen: `/email-vorlagen/reset/<doc_type>`). Nicht verwechseln mit den
+**Word-Dokumentvorlagen** (`vorlagen/*.docx`, Menü „Dokumentvorlagen").
+
 ## Belegnummer-Format
 
 `PREFIX-YYMM###` (z.B. RE-2604001 = Rechnung, April 2026, lfd. Nr. 1)
@@ -248,7 +264,7 @@ Postfächern des Tenants — Einschränkung per Exchange-Online
 
 ## Navigation (Sidebar in base.html)
 
-Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften → Mahnungen → Vorlagen → Einstellungen → Benutzer (nur Admins)
+Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften → Mahnungen → Dokumentvorlagen → E-Mail-Vorlagen → Einstellungen → Benutzer (nur Admins)
 
 ## Features
 
@@ -260,7 +276,8 @@ Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften �
 - Mahnwesen (mehrstufig, mit Mahngebühr)
 - Word-Dokumentgenerierung aus Vorlagen
 - E-Mail-Versand (Microsoft Graph oder SMTP, mit Dokument als Anhang) inkl. Testversand
-- Vorlagenverwaltung (Upload, Download, Muster mit Beispieldaten)
+- Dokumentvorlagen-Verwaltung (Word: Upload, Download, Muster mit Beispieldaten)
+- E-Mail-Vorlagen je Belegart mit Platzhaltern anpassbar (Betreff + Text)
 - Dark/Light Theme
 - Logo-Upload (Dark + Light Variante)
 - Logo-Größe per Schieberegler einstellbar: beide regeln die BREITE, damit die
