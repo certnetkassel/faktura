@@ -192,7 +192,15 @@ def init_db():
             subject TEXT NOT NULL,
             sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS email_templates (
+            doc_type TEXT PRIMARY KEY,
+            subject TEXT NOT NULL DEFAULT '',
+            body TEXT NOT NULL DEFAULT ''
+        );
     ''')
+
+    seed_email_templates(c)
 
     # Ensure settings row exists
     c.execute("INSERT OR IGNORE INTO settings (id) VALUES (1)")
@@ -200,6 +208,61 @@ def init_db():
     conn.close()
 
     migrate_db()
+
+
+# Standard-E-Mail-Vorlagen je Belegart (Betreff + Text mit Platzhaltern).
+# Bilden das bisher fest verdrahtete Anschreiben nach. {{anrede}} und {{signatur}}
+# werden beim Versand aus Kundendaten bzw. Firmendaten gefüllt.
+EMAIL_TEMPLATE_DEFAULTS = {
+    'invoice': {
+        'subject': 'Rechnung {{rechnung_nr}}',
+        'body': (
+            '{{anrede}}\n\n'
+            'anbei erhalten Sie unsere Rechnung {{rechnung_nr}} vom {{rechnung_datum}}.\n\n'
+            'Wir bitten um Überweisung bis zum {{faellig_datum}}.\n\n'
+            '{{signatur}}'
+        ),
+    },
+    'offer': {
+        'subject': 'Angebot {{angebot_nr}}',
+        'body': (
+            '{{anrede}}\n\n'
+            'vielen Dank für Ihre Anfrage. Anbei erhalten Sie unser Angebot '
+            '{{angebot_nr}} vom {{angebot_datum}}.\n\n'
+            'Das Angebot ist gültig bis zum {{gueltig_bis}}.\n\n'
+            'Bei Fragen dazu melden Sie sich gerne.\n\n'
+            '{{signatur}}'
+        ),
+    },
+    'credit': {
+        'subject': 'Gutschrift {{gutschrift_nr}}',
+        'body': (
+            '{{anrede}}\n\n'
+            'anbei erhalten Sie unsere Gutschrift {{gutschrift_nr}} vom {{gutschrift_datum}}.\n\n'
+            '{{signatur}}'
+        ),
+    },
+    'reminder': {
+        'subject': 'Zahlungserinnerung zu Rechnung {{rechnung_nr}}',
+        'body': (
+            '{{anrede}}\n\n'
+            'zu unserer Rechnung {{rechnung_nr}} vom {{rechnung_datum}} konnten wir bisher '
+            'keinen Zahlungseingang feststellen. Anbei erhalten Sie die Einzelheiten.\n\n'
+            'Wir bitten um Ausgleich bis zum {{mahnung_frist}}. Sollte sich Ihre Zahlung '
+            'damit überschnitten haben, betrachten Sie dieses Schreiben bitte als gegenstandslos.\n\n'
+            '{{signatur}}'
+        ),
+    },
+}
+
+
+def seed_email_templates(c):
+    """Fehlende E-Mail-Vorlagen mit den Standardtexten anlegen (idempotent).
+    Vorhandene (vom Anwender angepasste) Vorlagen bleiben unverändert."""
+    for doc_type, tmpl in EMAIL_TEMPLATE_DEFAULTS.items():
+        c.execute(
+            "INSERT OR IGNORE INTO email_templates (doc_type, subject, body) VALUES (?, ?, ?)",
+            [doc_type, tmpl['subject'], tmpl['body']])
 
 
 # Nachträglich ergänzte Spalten der settings-Tabelle.
@@ -248,6 +311,14 @@ def migrate_db():
                 "INSERT INTO users (email, password_hash, first_name, last_name, is_admin) "
                 "VALUES (?, ?, ?, ?, 1)",
                 ['dirk@dirkhildebrand.de', pw_hash, 'Dirk', 'Hildebrand'])
+
+    # E-Mail-Vorlagen: Tabelle nachziehen und fehlende Standardvorlagen anlegen
+    c.execute('''CREATE TABLE IF NOT EXISTS email_templates (
+        doc_type TEXT PRIMARY KEY,
+        subject TEXT NOT NULL DEFAULT '',
+        body TEXT NOT NULL DEFAULT ''
+    )''')
+    seed_email_templates(c)
 
     conn.commit()
     conn.close()

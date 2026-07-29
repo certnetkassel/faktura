@@ -18,7 +18,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 
 from config import DATABASE, SECRET_KEY, UPLOAD_FOLDER, OUTPUT_FOLDER
-from database import get_db, init_db, migrate_db
+from database import get_db, init_db, migrate_db, EMAIL_TEMPLATE_DEFAULTS
 
 LOGO_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'logos')
 
@@ -1521,6 +1521,24 @@ def mail_signatur(s):
     return '\n'.join(zeilen)
 
 
+def apply_placeholders(text, ph):
+    """Ersetzt {{platzhalter}} im Text durch die Werte aus dem Wörterbuch ph."""
+    for key, val in ph.items():
+        text = text.replace(key, '' if val is None else str(val))
+    return text
+
+
+def get_email_template(db, doc_type):
+    """Lädt die E-Mail-Vorlage (subject, body) für die Belegart; fällt auf die
+    Standardvorlage zurück, falls (noch) keine gespeichert ist."""
+    row = db.execute("SELECT subject, body FROM email_templates WHERE doc_type=?",
+                     [doc_type]).fetchone()
+    if row:
+        return row['subject'], row['body']
+    default = EMAIL_TEMPLATE_DEFAULTS.get(doc_type, {'subject': '', 'body': ''})
+    return default['subject'], default['body']
+
+
 @app.route('/settings/test-mail', methods=['POST'])
 @login_required
 def test_mail():
@@ -1559,46 +1577,46 @@ def send_email(doc_type, doc_id):
 
     db = get_db()
 
-    # Empfänger, Betreff, Anhang und Anschreiben je Dokumenttyp
+    # Kunde und belegspezifische Platzhalter je Dokumenttyp
     if doc_type == 'invoice':
         doc = db.execute("SELECT * FROM invoices WHERE id=?", [doc_id]).fetchone()
         cust = db.execute("SELECT * FROM customers WHERE id=?", [doc['customer_id']]).fetchone()
-        subject = f"Rechnung {doc['invoice_nr']}"
-        filename = f"{doc['invoice_nr']}.docx"
-        intro = (f"anbei erhalten Sie unsere Rechnung {doc['invoice_nr']} "
-                 f"vom {fmt_date(doc['date'])}.")
-        if doc['due_date']:
-            intro += f"\n\nWir bitten um Überweisung bis zum {fmt_date(doc['due_date'])}."
+        ph = {
+            '{{rechnung_nr}}': doc['invoice_nr'],
+            '{{rechnung_datum}}': fmt_date(doc['date']),
+            '{{faellig_datum}}': fmt_date(doc['due_date']),
+            '{{betrag}}': f"{doc['total']:.2f} €",
+        }
     elif doc_type == 'offer':
         doc = db.execute("SELECT * FROM offers WHERE id=?", [doc_id]).fetchone()
         cust = db.execute("SELECT * FROM customers WHERE id=?", [doc['customer_id']]).fetchone()
-        subject = f"Angebot {doc['offer_nr']}"
-        filename = f"{doc['offer_nr']}.docx"
-        intro = (f"vielen Dank für Ihre Anfrage. Anbei erhalten Sie unser Angebot "
-                 f"{doc['offer_nr']} vom {fmt_date(doc['date'])}.")
-        if doc['valid_until']:
-            intro += f"\n\nDas Angebot ist gültig bis zum {fmt_date(doc['valid_until'])}."
-        intro += "\n\nBei Fragen dazu melden Sie sich gerne."
+        ph = {
+            '{{angebot_nr}}': doc['offer_nr'],
+            '{{angebot_datum}}': fmt_date(doc['date']),
+            '{{gueltig_bis}}': fmt_date(doc['valid_until']),
+            '{{betrag}}': f"{doc['total']:.2f} €",
+        }
     elif doc_type == 'credit':
         doc = db.execute("SELECT * FROM credits WHERE id=?", [doc_id]).fetchone()
         cust = db.execute("SELECT * FROM customers WHERE id=?", [doc['customer_id']]).fetchone()
-        subject = f"Gutschrift {doc['credit_nr']}"
-        filename = f"{doc['credit_nr']}.docx"
-        intro = (f"anbei erhalten Sie unsere Gutschrift {doc['credit_nr']} "
-                 f"vom {fmt_date(doc['date'])}.")
+        ph = {
+            '{{gutschrift_nr}}': doc['credit_nr'],
+            '{{gutschrift_datum}}': fmt_date(doc['date']),
+            '{{betrag}}': f"{doc['total']:.2f} €",
+        }
     elif doc_type == 'reminder':
         rem = db.execute("SELECT * FROM reminders WHERE id=?", [doc_id]).fetchone()
         inv = db.execute("SELECT * FROM invoices WHERE id=?", [rem['invoice_id']]).fetchone()
         cust = db.execute("SELECT * FROM customers WHERE id=?", [inv['customer_id']]).fetchone()
-        subject = f"Zahlungserinnerung zu Rechnung {inv['invoice_nr']}"
-        filename = f"Mahnung_{rem['level']}_{inv['invoice_nr']}.docx"
-        intro = (f"zu unserer Rechnung {inv['invoice_nr']} vom {fmt_date(inv['date'])} "
-                 f"konnten wir bisher keinen Zahlungseingang feststellen. "
-                 f"Anbei erhalten Sie die Einzelheiten.")
-        if rem['due_date']:
-            intro += (f"\n\nWir bitten um Ausgleich bis zum {fmt_date(rem['due_date'])}. "
-                      f"Sollte sich Ihre Zahlung damit überschnitten haben, "
-                      f"betrachten Sie dieses Schreiben bitte als gegenstandslos.")
+        ph = {
+            '{{mahnung_stufe}}': str(rem['level']),
+            '{{mahnung_frist}}': fmt_date(rem['due_date']),
+            '{{mahngebuehr}}': f"{rem['fee']:.2f} €",
+            '{{rechnung_nr}}': inv['invoice_nr'],
+            '{{rechnung_datum}}': fmt_date(inv['date']),
+            '{{rechnung_faellig_datum}}': fmt_date(inv['due_date']),
+            '{{betrag}}': f"{inv['total'] + rem['fee']:.2f} €",
+        }
     else:
         flash('Unbekannter Dokumenttyp.', 'error')
         return redirect(url_for('dashboard'))
@@ -1608,6 +1626,21 @@ def send_email(doc_type, doc_id):
         flash('Kunde hat keine E-Mail-Adresse hinterlegt.', 'error')
         db.close()
         return redirect(request.referrer or url_for('dashboard'))
+
+    # Gemeinsame Platzhalter (Anrede, Signatur, Kunden-/Firmendaten)
+    ph.update({
+        '{{anrede}}': mail_anrede(cust),
+        '{{signatur}}': mail_signatur(s),
+        '{{kunde_firma}}': cust['company'] or '',
+        '{{kunde_vorname}}': cust['first_name'] or '',
+        '{{kunde_nachname}}': cust['last_name'] or '',
+        '{{firma}}': setting(s, 'company_name'),
+        '{{inhaber}}': setting(s, 'owner_name'),
+    })
+
+    subj_tmpl, body_tmpl = get_email_template(db, doc_type)
+    subject = apply_placeholders(subj_tmpl, ph)
+    body = apply_placeholders(body_tmpl, ph)
 
     # Dokument bei Bedarf automatisch erzeugen (Output-Ordner ist nur temporär),
     # damit "Per E-Mail senden" nicht voraussetzt, dass vorher "Word generieren"
@@ -1620,8 +1653,6 @@ def send_email(doc_type, doc_id):
         return redirect(request.referrer or url_for('dashboard'))
 
     try:
-        body = f"{mail_anrede(cust)}\n\n{intro}\n\n{mail_signatur(s)}"
-
         with open(filepath, 'rb') as f:
             attachments = [(filename, f.read())]
 
@@ -1791,6 +1822,83 @@ def vorlagen():
     for t in templates:
         t['exists'] = os.path.exists(os.path.join(UPLOAD_FOLDER, t['filename']))
     return render_template('vorlagen.html', vorlagen=templates)
+
+
+# ── E-Mail-Vorlagen ──
+
+# Belegarten mit Anzeigename und den in der jeweiligen E-Mail verfügbaren Platzhaltern
+EMAIL_TEMPLATE_META = [
+    {'doc_type': 'invoice', 'label': 'Rechnung',
+     'placeholders': ['{{anrede}}', '{{rechnung_nr}}', '{{rechnung_datum}}',
+                      '{{faellig_datum}}', '{{betrag}}', '{{signatur}}']},
+    {'doc_type': 'offer', 'label': 'Angebot',
+     'placeholders': ['{{anrede}}', '{{angebot_nr}}', '{{angebot_datum}}',
+                      '{{gueltig_bis}}', '{{betrag}}', '{{signatur}}']},
+    {'doc_type': 'credit', 'label': 'Gutschrift',
+     'placeholders': ['{{anrede}}', '{{gutschrift_nr}}', '{{gutschrift_datum}}',
+                      '{{betrag}}', '{{signatur}}']},
+    {'doc_type': 'reminder', 'label': 'Mahnung',
+     'placeholders': ['{{anrede}}', '{{mahnung_stufe}}', '{{mahnung_frist}}',
+                      '{{mahngebuehr}}', '{{rechnung_nr}}', '{{rechnung_datum}}',
+                      '{{rechnung_faellig_datum}}', '{{betrag}}', '{{signatur}}']},
+]
+
+# Zusätzlich in jeder Vorlage nutzbar
+EMAIL_COMMON_PLACEHOLDERS = ['{{kunde_firma}}', '{{kunde_vorname}}',
+                             '{{kunde_nachname}}', '{{firma}}', '{{inhaber}}']
+
+
+@app.route('/email-vorlagen')
+@login_required
+def email_templates():
+    db = get_db()
+    rows = {r['doc_type']: r for r in db.execute("SELECT * FROM email_templates").fetchall()}
+    db.close()
+    items = []
+    for meta in EMAIL_TEMPLATE_META:
+        row = rows.get(meta['doc_type'])
+        default = EMAIL_TEMPLATE_DEFAULTS.get(meta['doc_type'], {'subject': '', 'body': ''})
+        items.append({
+            'doc_type': meta['doc_type'],
+            'label': meta['label'],
+            'placeholders': meta['placeholders'] + EMAIL_COMMON_PLACEHOLDERS,
+            'subject': row['subject'] if row else default['subject'],
+            'body': row['body'] if row else default['body'],
+        })
+    return render_template('email_templates.html', templates=items)
+
+
+@app.route('/email-vorlagen/save/<doc_type>', methods=['POST'])
+@login_required
+def email_template_save(doc_type):
+    if doc_type not in EMAIL_TEMPLATE_DEFAULTS:
+        flash('Unbekannte Belegart.', 'error')
+        return redirect(url_for('email_templates'))
+    subject = request.form.get('subject', '').strip()
+    body = request.form.get('body', '')
+    db = get_db()
+    db.execute("INSERT OR REPLACE INTO email_templates (doc_type, subject, body) VALUES (?, ?, ?)",
+               [doc_type, subject, body])
+    db.commit()
+    db.close()
+    flash('E-Mail-Vorlage gespeichert.', 'success')
+    return redirect(url_for('email_templates'))
+
+
+@app.route('/email-vorlagen/reset/<doc_type>', methods=['POST'])
+@login_required
+def email_template_reset(doc_type):
+    default = EMAIL_TEMPLATE_DEFAULTS.get(doc_type)
+    if not default:
+        flash('Unbekannte Belegart.', 'error')
+        return redirect(url_for('email_templates'))
+    db = get_db()
+    db.execute("INSERT OR REPLACE INTO email_templates (doc_type, subject, body) VALUES (?, ?, ?)",
+               [doc_type, default['subject'], default['body']])
+    db.commit()
+    db.close()
+    flash('E-Mail-Vorlage auf Standard zurückgesetzt.', 'success')
+    return redirect(url_for('email_templates'))
 
 
 @app.route('/vorlagen/download/<filename>')

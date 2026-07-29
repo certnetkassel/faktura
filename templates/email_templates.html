@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}E-Mail-Vorlagen — Faktura{% endblock %}
+{% block content %}
+<div class="page-header">
+  <h1>E-Mail-Vorlagen</h1>
+</div>
+
+<div class="alert alert-info" style="margin-bottom:20px">
+  Diese Texte werden als Anschreiben verschickt, wenn du ein Dokument „Per E-Mail senden".
+  Platzhalter in doppelten geschweiften Klammern werden beim Versand automatisch ersetzt
+  — z.B. <code>{{ '{{anrede}}' }}</code> durch die passende Anrede des Kunden und
+  <code>{{ '{{signatur}}' }}</code> durch deine Grußformel mit Absenderdaten.
+  Klicke auf einen Platzhalter, um ihn an der Cursorposition einzufügen.
+</div>
+
+{% for t in templates %}
+<form method="POST" action="{{ url_for('email_template_save', doc_type=t.doc_type) }}" class="card">
+  <div class="card-header"><h2>{{ t.label }}</h2></div>
+
+  <div class="form-group">
+    <label>Betreff</label>
+    <input type="text" name="subject" value="{{ t.subject }}">
+  </div>
+
+  <div class="form-group">
+    <label>Text</label>
+    <textarea name="body" rows="10">{{ t.body }}</textarea>
+  </div>
+
+  <div class="placeholder-hints">
+    <span class="hint-label">Platzhalter:</span>
+    {% for p in t.placeholders %}
+    <button type="button" class="placeholder-chip" onclick="insertPlaceholder(this, '{{ p }}')">{{ p }}</button>
+    {% endfor %}
+  </div>
+
+  <div style="display:flex;gap:10px;margin-top:14px">
+    <button type="submit" class="btn btn-primary">Speichern</button>
+    <button type="submit" formaction="{{ url_for('email_template_reset', doc_type=t.doc_type) }}"
+            class="btn btn-secondary"
+            onclick="return confirm('Diese Vorlage auf den Standardtext zurücksetzen?')">
+      Auf Standard zurücksetzen
+    </button>
+  </div>
+</form>
+{% endfor %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Zuletzt fokussiertes Eingabefeld merken, damit Platzhalter dort landen
+let lastField = null;
+document.addEventListener('focusin', function(e) {
+  if (e.target.matches('input[name="subject"], textarea[name="body"]')) {
+    lastField = e.target;
+  }
+});
+
+function insertPlaceholder(btn, text) {
+  const form = btn.closest('form');
+  let field = (lastField && form.contains(lastField))
+    ? lastField
+    : form.querySelector('textarea[name="body"]');
+  const start = field.selectionStart != null ? field.selectionStart : field.value.length;
+  const end = field.selectionEnd != null ? field.selectionEnd : field.value.length;
+  field.value = field.value.slice(0, start) + text + field.value.slice(end);
+  field.focus();
+  const pos = start + text.length;
+  field.setSelectionRange(pos, pos);
+}
+</script>
+{% endblock %}
