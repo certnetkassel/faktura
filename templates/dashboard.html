@@ -23,9 +23,14 @@
     <div class="stat-value">{{ stats.overdue_invoices }}</div>
   </div>
   <div class="stat-card">
+    <div class="stat-icon" style="background:var(--yellow-bg);color:var(--yellow)">&#8364;</div>
+    <div class="stat-label">Offen (Monat)</div>
+    <div class="stat-value">{{ "%.2f"|format(stats.month_open) }} €</div>
+  </div>
+  <div class="stat-card">
     <div class="stat-icon" style="background:var(--accent);color:#fff">&#8364;</div>
-    <div class="stat-label">Umsatz (Monat)</div>
-    <div class="stat-value">{{ "%.2f"|format(stats.monthly_revenue) }} €</div>
+    <div class="stat-label">Bezahlt (Monat)</div>
+    <div class="stat-value">{{ "%.2f"|format(stats.month_paid) }} €</div>
   </div>
 </div>
 

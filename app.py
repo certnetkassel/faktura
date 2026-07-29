@@ -349,7 +349,13 @@ def dashboard():
         'overdue_invoices': db.execute(
             "SELECT COUNT(*) FROM invoices WHERE status='Überfällig' OR (status='Gesendet' AND due_date < ?)",
             [today]).fetchone()[0],
-        'monthly_revenue': db.execute(
+        # Offen im Monat: gestellt (Gesendet/Überfällig), aber noch nicht bezahlt
+        'month_open': db.execute(
+            "SELECT COALESCE(SUM(total),0) FROM invoices "
+            "WHERE status IN ('Gesendet','Überfällig') AND date >= ?",
+            [month_start]).fetchone()[0],
+        # Bezahlt im Monat: tatsächlich eingegangenes Geld
+        'month_paid': db.execute(
             "SELECT COALESCE(SUM(total),0) FROM invoices WHERE status='Bezahlt' AND date >= ?",
             [month_start]).fetchone()[0],
     }
