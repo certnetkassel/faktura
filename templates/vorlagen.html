@@ -27,7 +27,7 @@
           {% endif %}
           <form method="POST" action="{{ url_for('vorlage_upload') }}" enctype="multipart/form-data" style="display:inline-flex;align-items:center;gap:8px">
             <input type="hidden" name="target" value="{{ v.filename }}">
-            <input type="file" name="file" accept=".docx" style="max-width:200px">
+            <input type="file" name="file" accept=".docx" style="min-width:340px">
             <button type="submit" class="btn-icon" title="Hochladen">&#x2912;</button>
           </form>
         </td>
