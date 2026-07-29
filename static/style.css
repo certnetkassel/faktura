@@ -365,6 +365,45 @@ a:hover { color: var(--accent-hover); }
   text-align: center;
 }
 
+/* ── Aufklappbare Menügruppe (Vorlagen) ── */
+.nav-group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  color: var(--text2);
+  font-family: inherit;
+  font-size: .95rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.nav-group-toggle:hover { background: var(--card); color: #fff; }
+.nav-group-toggle.active { color: #fff; }
+.nav-group-toggle .nav-icon { font-size: 1.1rem; width: 24px; text-align: center; }
+.nav-group-toggle .nav-group-label { flex: 1; }
+.nav-group-toggle .nav-caret {
+  font-size: .7rem;
+  transition: transform var(--transition);
+}
+.nav-group.open .nav-group-toggle .nav-caret { transform: rotate(180deg); }
+
+.sidebar-nav .submenu {
+  list-style: none;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height var(--transition);
+}
+.nav-group.open .submenu { max-height: 160px; }
+.sidebar-nav .submenu li a { padding-left: 52px; font-size: .9rem; }
+
+[data-theme="light"] .nav-group-toggle:hover,
+[data-theme="light"] .nav-group-toggle.active { color: #1a1a2e; }
+
 .sidebar-footer {
   padding: 16px 20px;
   border-top: 1px solid var(--border);

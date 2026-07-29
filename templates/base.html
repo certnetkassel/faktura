@@ -46,12 +46,21 @@
         <li><a href="{{ url_for('reminders') }}" class="{% if request.endpoint in ['reminders','reminder_form'] %}active{% endif %}">
           <span class="nav-icon">&#9888;</span> Mahnungen
         </a></li>
-        <li><a href="{{ url_for('vorlagen') }}" class="{% if request.endpoint == 'vorlagen' %}active{% endif %}">
-          <span class="nav-icon">&#128196;&#xFE0E;</span> Dokumentvorlagen
-        </a></li>
-        <li><a href="{{ url_for('email_templates') }}" class="{% if request.endpoint == 'email_templates' %}active{% endif %}">
-          <span class="nav-icon">&#9993;</span> E-Mail-Vorlagen
-        </a></li>
+        <li class="nav-group {% if request.endpoint in ['vorlagen','email_templates'] %}open{% endif %}">
+          <button type="button" class="nav-group-toggle {% if request.endpoint in ['vorlagen','email_templates'] %}active{% endif %}" onclick="toggleNavGroup(this)">
+            <span class="nav-icon">&#128193;&#xFE0E;</span>
+            <span class="nav-group-label">Vorlagen</span>
+            <span class="nav-caret">&#9662;</span>
+          </button>
+          <ul class="submenu">
+            <li><a href="{{ url_for('vorlagen') }}" class="{% if request.endpoint == 'vorlagen' %}active{% endif %}">
+              <span class="nav-icon">&#128196;&#xFE0E;</span> Dokumentvorlagen
+            </a></li>
+            <li><a href="{{ url_for('email_templates') }}" class="{% if request.endpoint == 'email_templates' %}active{% endif %}">
+              <span class="nav-icon">&#9993;</span> E-Mail-Vorlagen
+            </a></li>
+          </ul>
+        </li>
         <li><a href="{{ url_for('settings') }}" class="{% if request.endpoint == 'settings' %}active{% endif %}">
           <span class="nav-icon">&#9881;</span> Einstellungen
         </a></li>
@@ -93,6 +102,10 @@
     function toggleSidebar() {
       document.getElementById('sidebar').classList.toggle('open');
       document.getElementById('sidebarOverlay').classList.toggle('open');
+    }
+
+    function toggleNavGroup(btn) {
+      btn.closest('.nav-group').classList.toggle('open');
     }
 
     function setTheme(theme) {
