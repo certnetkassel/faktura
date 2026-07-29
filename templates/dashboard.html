@@ -34,7 +34,7 @@
   </div>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+<div style="display:grid;grid-template-columns:1.7fr 1fr;gap:20px">
   <div class="card">
     <div class="card-header">
       <h2>Offene Rechnungen</h2>
@@ -42,14 +42,14 @@
     {% if open_invoices %}
     <div class="table-wrap">
       <table>
-        <thead><tr><th>Nr.</th><th>Kunde</th><th>Betrag</th><th>Fällig</th><th>Status</th></tr></thead>
+        <thead><tr><th style="white-space:nowrap">Nr.</th><th>Kunde</th><th style="white-space:nowrap">Betrag</th><th style="white-space:nowrap">Fällig</th><th>Status</th></tr></thead>
         <tbody>
         {% for inv in open_invoices %}
         <tr>
-          <td>{{ inv.invoice_nr }}</td>
+          <td style="white-space:nowrap">{{ inv.invoice_nr }}</td>
           <td>{{ inv.last_name }}{% if inv.company %}, {{ inv.company }}{% endif %}</td>
-          <td>{{ "%.2f"|format(inv.total) }} €</td>
-          <td>{{ inv.due_date }}</td>
+          <td style="white-space:nowrap">{{ "%.2f"|format(inv.total) }} €</td>
+          <td style="white-space:nowrap">{{ inv.due_date|fmt_date }}</td>
           <td>
             {% if inv.status == 'Überfällig' %}
               <span class="badge badge-red">{{ inv.status }}</span>
