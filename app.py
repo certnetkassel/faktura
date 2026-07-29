@@ -193,6 +193,17 @@ def _insert_logo_in_paragraph(paragraph, image_path, width):
     if not paragraph.runs:
         return
     before, _, after = paragraph.text.partition(LOGO_PLACEHOLDER)
+
+    # Häufiges Vorlagen-Muster: der Marker wurde mit einem Tab nach rechts
+    # geschoben (z.B. "\t{{logo}}"). Ein Inline-Bild richtet sich aber NICHT am
+    # Tabstopp aus – es startet an der Tab-Position und läuft über den rechten
+    # Seitenrand hinaus. Steht vor dem Marker nur Tab/Leerraum, entfernen wir den
+    # Tab und setzen den Absatz rechtsbündig: dann sitzt die rechte Bildkante
+    # sauber am rechten Rand.
+    right_align = before.strip() == '' and '\t' in before
+    if right_align:
+        before = before.replace('\t', '')
+
     run = paragraph.runs[0]
     run.text = before
     for r in paragraph.runs[1:]:
@@ -200,6 +211,10 @@ def _insert_logo_in_paragraph(paragraph, image_path, width):
     run.add_picture(image_path, width=width)
     if after:
         run.add_text(after)
+
+    if right_align:
+        from docx.enum.text import WD_ALIGN_PARAGRAPH
+        paragraph.alignment = WD_ALIGN_PARAGRAPH.RIGHT
 
 
 def _insert_logo_in_tables(tables, image_path, width):
