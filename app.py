@@ -875,6 +875,10 @@ def offer_to_invoice(id):
 
 # ── Invoices ──
 
+# Erlaubte Rechnungs-Status (Reihenfolge = Workflow, auch für das Status-Dropdown)
+INVOICE_STATUSES = ['Entwurf', 'Gesendet', 'Bezahlt', 'Überfällig', 'Storniert']
+
+
 @app.route('/invoices')
 @login_required
 def invoices():
@@ -885,7 +889,7 @@ def invoices():
     invs = db.execute('''SELECT i.*, c.last_name, c.company FROM invoices i
                          JOIN customers c ON i.customer_id=c.id ORDER BY i.date DESC''').fetchall()
     db.close()
-    return render_template('invoices.html', invoices=invs)
+    return render_template('invoices.html', invoices=invs, invoice_statuses=INVOICE_STATUSES)
 
 
 @app.route('/invoices/new', methods=['GET', 'POST'])
@@ -991,14 +995,18 @@ def invoice_delete(id):
     return redirect(url_for('invoices'))
 
 
-@app.route('/invoices/<int:id>/status/<status>', methods=['POST'])
+@app.route('/invoices/<int:id>/status', methods=['POST'])
 @login_required
-def invoice_status(id, status):
+def invoice_status(id):
+    status = request.form.get('status', '')
+    if status not in INVOICE_STATUSES:
+        flash('Ungültiger Status.', 'error')
+        return redirect(url_for('invoices'))
     db = get_db()
     db.execute("UPDATE invoices SET status=? WHERE id=?", [status, id])
     db.commit()
     db.close()
-    flash(f'Status auf "{status}" gesetzt.', 'success')
+    flash(f'Status auf „{status}" gesetzt.', 'success')
     return redirect(url_for('invoices'))
 
 

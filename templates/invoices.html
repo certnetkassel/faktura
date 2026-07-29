@@ -19,22 +19,20 @@
         <td>{{ i.due_date|fmt_date }}</td>
         <td>{{ "%.2f"|format(i.total) }} €</td>
         <td>
-          {% if i.status == 'Bezahlt' %}<span class="badge badge-green">{{ i.status }}</span>
-          {% elif i.status == 'Überfällig' %}<span class="badge badge-red">{{ i.status }}</span>
-          {% elif i.status == 'Gesendet' %}<span class="badge badge-blue">{{ i.status }}</span>
-          {% elif i.status == 'Storniert' %}<span class="badge badge-muted">{{ i.status }}</span>
-          {% else %}<span class="badge badge-yellow">{{ i.status }}</span>{% endif %}
+          {% set color = {'Bezahlt':'green','Überfällig':'red','Gesendet':'blue','Storniert':'muted'}.get(i.status,'yellow') %}
+          <form method="POST" action="{{ url_for('invoice_status', id=i.id) }}" class="status-form">
+            <select name="status" class="status-select status-{{ color }}" onchange="this.form.submit()" title="Status ändern">
+              {% for st in invoice_statuses %}
+              <option value="{{ st }}" {% if i.status == st %}selected{% endif %}>{{ st }}</option>
+              {% endfor %}
+            </select>
+          </form>
         </td>
         <td class="actions">
           <a href="{{ url_for('generate_doc', doc_type='invoice', doc_id=i.id) }}" class="btn-icon" title="Word generieren">&#8681;</a>
           <form method="POST" action="{{ url_for('send_email', doc_type='invoice', doc_id=i.id) }}" style="display:inline">
             <button type="submit" class="btn-icon" title="Per E-Mail senden">&#9993;</button>
           </form>
-          {% if i.status != 'Bezahlt' %}
-          <form method="POST" action="{{ url_for('invoice_status', id=i.id, status='Bezahlt') }}" style="display:inline">
-            <button type="submit" class="btn-icon" title="Als bezahlt markieren" style="color:var(--green)">&#10003;</button>
-          </form>
-          {% endif %}
           <a href="{{ url_for('invoice_edit', id=i.id) }}" class="btn-icon" title="Bearbeiten">&#9998;</a>
           <form method="POST" action="{{ url_for('invoice_delete', id=i.id) }}" onsubmit="return confirm('Rechnung löschen?')" style="display:inline">
             <button type="submit" class="btn-icon danger" title="Löschen">&#10005;</button>

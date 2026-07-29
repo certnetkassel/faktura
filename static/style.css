@@ -652,6 +652,30 @@ table .actions {
   color: #fff;
 }
 
+/* ── Status-Dropdown (Rechnungsliste) ── */
+.status-form { margin: 0; }
+.status-select {
+  padding: 4px 26px 4px 12px;
+  border-radius: 20px;
+  font-size: .75rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 9px center;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='6' viewBox='0 0 8 6'%3E%3Cpath fill='currentColor' d='M4 6 0 0h8z'/%3E%3C/svg%3E");
+}
+.status-select:focus { outline: none; border-color: var(--accent); }
+.status-select option { background: var(--card); color: var(--text); }
+.status-green  { background: var(--green-bg);  color: var(--green); }
+.status-red    { background: var(--red-bg);    color: var(--red); }
+.status-blue   { background: var(--blue-bg);   color: var(--blue); }
+.status-yellow { background: var(--yellow-bg); color: var(--yellow); }
+.status-muted  { background: #2a2d3a;          color: var(--muted); }
+[data-theme="light"] .status-muted { background: #e0e0e0; color: #666; }
+
 /* ── Alerts ── */
 .alert {
   padding: 14px 18px;
