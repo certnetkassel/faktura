@@ -1,7 +1,10 @@
 import base64
 import os
+import shutil
 import smtplib
 import sqlite3
+import subprocess
+import tempfile
 import time
 from datetime import datetime, date, timedelta
 from email.mime.multipart import MIMEMultipart
@@ -1350,6 +1353,35 @@ def generate_doc(doc_type, doc_id):
     return send_file(output_path, as_attachment=True, download_name=output_name)
 
 
+def convert_to_pdf(docx_path):
+    """Wandelt eine .docx-Datei per LibreOffice (headless) in PDF um und gibt den
+    PDF-Pfad zurück. Wirft DocGenError bei Fehlern (dann wird nichts versendet).
+    www-data hat kein nutzbares HOME, deshalb ein eigenes, beschreibbares
+    LibreOffice-Profil je Aufruf – das vermeidet auch das Single-Instance-Lock."""
+    soffice = shutil.which('soffice') or shutil.which('libreoffice')
+    if not soffice:
+        raise DocGenError('PDF-Umwandlung nicht möglich: LibreOffice (soffice) '
+                          'ist auf dem Server nicht installiert.')
+    out_dir = os.path.dirname(docx_path)
+    profile = tempfile.mkdtemp(prefix='lo_profile_')
+    try:
+        try:
+            result = subprocess.run(
+                [soffice, '--headless', '--nologo', '--norestore',
+                 f'-env:UserInstallation=file://{profile}',
+                 '--convert-to', 'pdf', '--outdir', out_dir, docx_path],
+                capture_output=True, timeout=120)
+        except subprocess.TimeoutExpired:
+            raise DocGenError('PDF-Umwandlung hat zu lange gedauert.')
+        pdf_path = os.path.splitext(docx_path)[0] + '.pdf'
+        if not os.path.exists(pdf_path):
+            detail = result.stderr.decode('utf-8', 'replace').strip()[:200]
+            raise DocGenError(f'PDF-Umwandlung fehlgeschlagen. {detail}'.strip())
+        return pdf_path
+    finally:
+        shutil.rmtree(profile, ignore_errors=True)
+
+
 # ── E-Mail-Versand ──
 #
 # Zwei Verfahren, umschaltbar in den Einstellungen (settings.mail_method):
@@ -1659,17 +1691,21 @@ def send_email(doc_type, doc_id):
 
     # Dokument bei Bedarf automatisch erzeugen (Output-Ordner ist nur temporär),
     # damit "Per E-Mail senden" nicht voraussetzt, dass vorher "Word generieren"
-    # geklickt wurde.
+    # geklickt wurde. Anschließend in PDF umwandeln – versendet wird ausschließlich
+    # das PDF, nie die .docx.
     try:
-        filepath, filename = build_document(doc_type, doc_id)
+        docx_path, docx_name = build_document(doc_type, doc_id)
+        pdf_path = convert_to_pdf(docx_path)
     except DocGenError as e:
         flash(str(e), 'error')
         db.close()
         return redirect(request.referrer or url_for('dashboard'))
 
+    pdf_name = os.path.splitext(docx_name)[0] + '.pdf'
+
     try:
-        with open(filepath, 'rb') as f:
-            attachments = [(filename, f.read())]
+        with open(pdf_path, 'rb') as f:
+            attachments = [(pdf_name, f.read())]
 
         send_mail(s, recipient, subject, body, attachments)
 
