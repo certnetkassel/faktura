@@ -54,6 +54,7 @@
     <a href="{{ url_for('credits_list') }}" class="btn btn-secondary">Abbrechen</a>
   </div>
 </form>
+{% endblock %}
 
 {% block scripts %}
 <script>
@@ -72,5 +73,4 @@ function addItem(desc='', qty='1', unit='Stück', price='0.00') {
 }
 addItem();
 </script>
-{% endblock %}
 {% endblock %}

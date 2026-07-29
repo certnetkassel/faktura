@@ -69,6 +69,7 @@
     <a href="{{ url_for('invoices') }}" class="btn btn-secondary">Abbrechen</a>
   </div>
 </form>
+{% endblock %}
 
 {% block scripts %}
 <script>
@@ -98,5 +99,4 @@ function loadArticle(sel) {
 
 {% if not items %}addItem();{% endif %}
 </script>
-{% endblock %}
 {% endblock %}

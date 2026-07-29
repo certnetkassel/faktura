@@ -1152,14 +1152,20 @@ def reminder_delete(id):
 
 # ── Document Generation (Word) ──
 
-@app.route('/generate/<doc_type>/<int:doc_id>')
-@login_required
-def generate_doc(doc_type, doc_id):
+class DocGenError(Exception):
+    """Fehler bei der Dokumenterzeugung (z.B. fehlende Vorlage). Die Nachricht
+    ist für den Anwender bestimmt (wird als Flash angezeigt)."""
+
+
+def build_document(doc_type, doc_id):
+    """Erzeugt das Word-Dokument aus der Vorlage und speichert es im Output-Ordner.
+    Gibt (output_path, output_name) zurück; wirft DocGenError bei Problemen.
+    Wird sowohl vom Download ("Word generieren") als auch vom E-Mail-Versand genutzt,
+    damit beim Senden bei Bedarf automatisch (neu) generiert wird."""
     try:
         from docx import Document
     except ImportError:
-        flash('python-docx ist nicht installiert.', 'error')
-        return redirect(url_for('dashboard'))
+        raise DocGenError('python-docx ist nicht installiert.')
 
     template_map = {
         'invoice': 'vorlage_rechnung.docx',
@@ -1170,8 +1176,8 @@ def generate_doc(doc_type, doc_id):
 
     template_file = os.path.join(UPLOAD_FOLDER, template_map.get(doc_type, ''))
     if not os.path.exists(template_file):
-        flash(f'Vorlage "{template_map.get(doc_type)}" nicht gefunden im Ordner "vorlagen/".', 'error')
-        return redirect(url_for('dashboard'))
+        raise DocGenError(
+            f'Vorlage "{template_map.get(doc_type)}" nicht gefunden im Ordner "vorlagen/".')
 
     db = get_db()
     s = get_settings()
@@ -1312,8 +1318,20 @@ def generate_doc(doc_type, doc_id):
     # Positionen einfügen ({{positionen}}-Marker -> Zeilen, Markerzeile wird entfernt)
     fill_positions(doc, items)
 
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
     output_path = os.path.join(OUTPUT_FOLDER, output_name)
     doc.save(output_path)
+    return output_path, output_name
+
+
+@app.route('/generate/<doc_type>/<int:doc_id>')
+@login_required
+def generate_doc(doc_type, doc_id):
+    try:
+        output_path, output_name = build_document(doc_type, doc_id)
+    except DocGenError as e:
+        flash(str(e), 'error')
+        return redirect(request.referrer or url_for('dashboard'))
     return send_file(output_path, as_attachment=True, download_name=output_name)
 
 
@@ -1591,9 +1609,13 @@ def send_email(doc_type, doc_id):
         db.close()
         return redirect(request.referrer or url_for('dashboard'))
 
-    filepath = os.path.join(OUTPUT_FOLDER, filename)
-    if not os.path.exists(filepath):
-        flash('Dokument nicht gefunden. Bitte zuerst generieren.', 'error')
+    # Dokument bei Bedarf automatisch erzeugen (Output-Ordner ist nur temporär),
+    # damit "Per E-Mail senden" nicht voraussetzt, dass vorher "Word generieren"
+    # geklickt wurde.
+    try:
+        filepath, filename = build_document(doc_type, doc_id)
+    except DocGenError as e:
+        flash(str(e), 'error')
         db.close()
         return redirect(request.referrer or url_for('dashboard'))
 
