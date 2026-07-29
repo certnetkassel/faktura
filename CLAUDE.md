@@ -239,6 +239,16 @@ Die Schritt-für-Schritt-Anleitung für das Entra Admin Center steckt als (i)-Pa
 in `templates/settings.html`. Testversand: `POST /settings/test-mail` (Button in den
 Einstellungen, nutzt die **gespeicherten** Werte).
 
+**Anhang immer als PDF:** `send_email` erzeugt das Dokument per `build_document()`
+(→ .docx) und wandelt es danach mit `convert_to_pdf()` in ein **PDF** um; angehängt
+und versendet wird ausschließlich das PDF, nie die .docx. Die Umwandlung nutzt
+**LibreOffice headless** (`soffice --headless --convert-to pdf`, System­paket
+`libreoffice`, auf dem Server unter `/usr/bin/soffice`) mit einem eigenen
+`UserInstallation`-Profil je Aufruf (www-data hat kein nutzbares HOME; vermeidet
+auch das Single-Instance-Lock). Schlägt die Umwandlung fehl, wird nichts versendet
+(Flash-Fehler statt docx-Fallback). Der Button **„Word generieren"** (`/generate/...`)
+liefert weiterhin bewusst die **.docx** zum Bearbeiten.
+
 Hinweis: `Mail.Send` als Anwendungsberechtigung erlaubt den Versand aus allen
 Postfächern des Tenants — Einschränkung per Exchange-Online
 `New-ApplicationAccessPolicy` empfohlen (steht auch im (i)-Panel).
