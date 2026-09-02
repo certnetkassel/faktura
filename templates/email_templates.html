@@ -6,11 +6,22 @@
 </div>
 
 <div class="alert alert-info" style="margin-bottom:20px">
-  Diese Texte werden als Anschreiben verschickt, wenn du ein Dokument „Per E-Mail senden".
-  Platzhalter in doppelten geschweiften Klammern werden beim Versand automatisch ersetzt
-  — z.B. <code>{{ '{{anrede}}' }}</code> durch die passende Anrede des Kunden und
-  <code>{{ '{{signatur}}' }}</code> durch deine Grußformel mit Absenderdaten.
+  Diese Texte werden als Anschreiben verwendet, wenn du zu einem Beleg einen E-Mail-Entwurf
+  erstellst. Platzhalter in doppelten geschweiften Klammern werden dabei ersetzt.
   Klicke auf einen Platzhalter, um ihn an der Cursorposition einzufügen.
+  <br><br>
+  Die Felder unter <strong>Kunde</strong> und <strong>Absender</strong> heißen genauso wie in
+  den Word-Vorlagen — Anrede und Grußformel kannst du damit selbst zusammenstellen, z.B.
+  <code>Hallo {{ '{{kunde_anrede}}' }} {{ '{{kunde_nachname}}' }},</code> und als Signatur
+  <code>{{ '{{inhaber}}' }}</code> / <code>{{ '{{firma_telefon}}' }}</code> /
+  <code>{{ '{{firma_email}}' }}</code> in eigenen Zeilen. Die Werte dafür stehen in den
+  <a href="{{ url_for('settings') }}">Einstellungen</a> bzw. beim jeweiligen Kunden.
+  <br><br>
+  Unter <strong>Fertige Bausteine</strong> stehen zwei Platzhalter, die die App selbst
+  zusammensetzt: <code>{{ '{{anrede}}' }}</code> wird zu „Sehr geehrter Herr Muster,"
+  (bzw. „Sehr geehrte Damen und Herren,", wenn beim Kunden keine Anrede hinterlegt ist),
+  <code>{{ '{{signatur}}' }}</code> zu „Mit freundlichen Grüßen" plus Inhaber, Firma,
+  Telefon und E-Mail aus den Einstellungen.
 </div>
 
 {% for t in templates %}
@@ -27,12 +38,14 @@
     <textarea name="body" rows="10">{{ t.body }}</textarea>
   </div>
 
+  {% for group in t.placeholder_groups %}
   <div class="placeholder-hints">
-    <span class="hint-label">Platzhalter:</span>
-    {% for p in t.placeholders %}
+    <span class="hint-label">{{ group.label }}:</span>
+    {% for p in group['items'] %}
     <button type="button" class="placeholder-chip" onclick="insertPlaceholder(this, '{{ p }}')">{{ p }}</button>
     {% endfor %}
   </div>
+  {% endfor %}
 
   <div style="display:flex;gap:10px;margin-top:14px">
     <button type="submit" class="btn btn-primary">Speichern</button>

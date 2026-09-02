@@ -1225,6 +1225,41 @@ class DocGenError(Exception):
     ist für den Anwender bestimmt (wird als Flash angezeigt)."""
 
 
+def company_placeholders(s):
+    """Platzhalter aus den Einstellungen. Gemeinsame Quelle für Word-Vorlagen
+    und E-Mail-Vorlagen, damit beide dieselben Namen und Werte kennen."""
+    return {
+        '{{firma}}': setting(s, 'company_name'),
+        '{{inhaber}}': setting(s, 'owner_name'),
+        '{{firma_strasse}}': setting(s, 'street'),
+        '{{firma_plz}}': setting(s, 'zip'),
+        '{{firma_stadt}}': setting(s, 'city'),
+        '{{firma_telefon}}': setting(s, 'phone'),
+        '{{firma_email}}': setting(s, 'email'),
+        '{{steuernummer}}': setting(s, 'tax_number'),
+        '{{bank}}': setting(s, 'bank_name'),
+        '{{iban}}': setting(s, 'iban'),
+        '{{bic}}': setting(s, 'bic'),
+        '{{kleinunternehmer}}': setting(s, 'kleinunternehmer_text'),
+    }
+
+
+def customer_placeholders(cust):
+    """Platzhalter aus den Kundendaten – ebenfalls für beide Vorlagenarten."""
+    return {
+        '{{kunde_firma}}': cust['company'],
+        '{{kunde_anrede}}': cust['salutation'],
+        '{{kunde_vorname}}': cust['first_name'],
+        '{{kunde_nachname}}': cust['last_name'],
+        '{{kunde_strasse}}': cust['street'],
+        '{{kunde_plz}}': cust['zip'],
+        '{{kunde_stadt}}': cust['city'],
+        '{{kunde_nr}}': cust['customer_nr'],
+        '{{kunde_email}}': cust['email'],
+        '{{kunde_telefon}}': cust['phone'],
+    }
+
+
 def build_document(doc_type, doc_id):
     """Erzeugt das Word-Dokument aus der Vorlage und speichert es im Output-Ordner.
     Gibt (output_path, output_name) zurück; wirft DocGenError bei Problemen.
@@ -1251,20 +1286,7 @@ def build_document(doc_type, doc_id):
     s = get_settings()
 
     # Build replacement dict
-    replacements = {
-        '{{firma}}': s['company_name'],
-        '{{inhaber}}': s['owner_name'],
-        '{{firma_strasse}}': s['street'],
-        '{{firma_plz}}': s['zip'],
-        '{{firma_stadt}}': s['city'],
-        '{{firma_telefon}}': s['phone'],
-        '{{firma_email}}': s['email'],
-        '{{steuernummer}}': s['tax_number'],
-        '{{bank}}': s['bank_name'],
-        '{{iban}}': s['iban'],
-        '{{bic}}': s['bic'],
-        '{{kleinunternehmer}}': s['kleinunternehmer_text'],
-    }
+    replacements = company_placeholders(s)
 
     output_name = ''
 
@@ -1276,16 +1298,7 @@ def build_document(doc_type, doc_id):
             '{{rechnung_nr}}': inv['invoice_nr'],
             '{{rechnung_datum}}': fmt_date(inv['date']),
             '{{faellig_datum}}': fmt_date(inv['due_date']),
-            '{{kunde_firma}}': cust['company'],
-            '{{kunde_anrede}}': cust['salutation'],
-            '{{kunde_vorname}}': cust['first_name'],
-            '{{kunde_nachname}}': cust['last_name'],
-            '{{kunde_strasse}}': cust['street'],
-            '{{kunde_plz}}': cust['zip'],
-            '{{kunde_stadt}}': cust['city'],
-            '{{kunde_nr}}': cust['customer_nr'],
-            '{{kunde_email}}': cust['email'],
-            '{{kunde_telefon}}': cust['phone'],
+            **customer_placeholders(cust),
             '{{gesamtbetrag}}': f"{inv['total']:.2f} €",
             '{{notizen}}': inv['notes'] or '',
         })
@@ -1299,16 +1312,7 @@ def build_document(doc_type, doc_id):
             '{{angebot_nr}}': off['offer_nr'],
             '{{angebot_datum}}': fmt_date(off['date']),
             '{{gueltig_bis}}': fmt_date(off['valid_until']),
-            '{{kunde_firma}}': cust['company'],
-            '{{kunde_anrede}}': cust['salutation'],
-            '{{kunde_vorname}}': cust['first_name'],
-            '{{kunde_nachname}}': cust['last_name'],
-            '{{kunde_strasse}}': cust['street'],
-            '{{kunde_plz}}': cust['zip'],
-            '{{kunde_stadt}}': cust['city'],
-            '{{kunde_nr}}': cust['customer_nr'],
-            '{{kunde_email}}': cust['email'],
-            '{{kunde_telefon}}': cust['phone'],
+            **customer_placeholders(cust),
             '{{gesamtbetrag}}': f"{off['total']:.2f} €",
             '{{notizen}}': off['notes'] or '',
         })
@@ -1321,16 +1325,7 @@ def build_document(doc_type, doc_id):
         replacements.update({
             '{{gutschrift_nr}}': cr['credit_nr'],
             '{{gutschrift_datum}}': fmt_date(cr['date']),
-            '{{kunde_firma}}': cust['company'],
-            '{{kunde_anrede}}': cust['salutation'],
-            '{{kunde_vorname}}': cust['first_name'],
-            '{{kunde_nachname}}': cust['last_name'],
-            '{{kunde_strasse}}': cust['street'],
-            '{{kunde_plz}}': cust['zip'],
-            '{{kunde_stadt}}': cust['city'],
-            '{{kunde_nr}}': cust['customer_nr'],
-            '{{kunde_email}}': cust['email'],
-            '{{kunde_telefon}}': cust['phone'],
+            **customer_placeholders(cust),
             '{{gesamtbetrag}}': f"{cr['total']:.2f} €",
             '{{notizen}}': cr['notes'] or '',
         })
@@ -1353,16 +1348,7 @@ def build_document(doc_type, doc_id):
             '{{rechnung_faellig_datum}}': fmt_date(inv['due_date']),
             '{{rechnung_betrag}}': f"{inv['total']:.2f} €",
             '{{gesamtbetrag}}': f"{inv['total'] + rem['fee']:.2f} €",
-            '{{kunde_firma}}': cust['company'],
-            '{{kunde_anrede}}': cust['salutation'],
-            '{{kunde_vorname}}': cust['first_name'],
-            '{{kunde_nachname}}': cust['last_name'],
-            '{{kunde_strasse}}': cust['street'],
-            '{{kunde_plz}}': cust['zip'],
-            '{{kunde_stadt}}': cust['city'],
-            '{{kunde_nr}}': cust['customer_nr'],
-            '{{kunde_email}}': cust['email'],
-            '{{kunde_telefon}}': cust['phone'],
+            **customer_placeholders(cust),
             '{{notizen}}': rem['notes'] or '',
         })
         output_name = f"Mahnung_{rem['level']}_{inv['invoice_nr']}.docx"
@@ -1864,15 +1850,13 @@ def draft_email(doc_type, doc_id):
         db.close()
         return redirect(request.referrer or url_for('dashboard'))
 
-    # Gemeinsame Platzhalter (Anrede, Signatur, Kunden-/Firmendaten)
+    # Gemeinsame Platzhalter: dieselben Einzelfelder wie in den Word-Vorlagen,
+    # dazu die beiden zusammengesetzten {{anrede}} und {{signatur}}.
+    ph.update(company_placeholders(s))
+    ph.update(customer_placeholders(cust))
     ph.update({
         '{{anrede}}': mail_anrede(cust),
         '{{signatur}}': mail_signatur(s),
-        '{{kunde_firma}}': cust['company'] or '',
-        '{{kunde_vorname}}': cust['first_name'] or '',
-        '{{kunde_nachname}}': cust['last_name'] or '',
-        '{{firma}}': setting(s, 'company_name'),
-        '{{inhaber}}': setting(s, 'owner_name'),
     })
 
     subj_tmpl, body_tmpl = get_email_template(db, doc_type)
@@ -2068,23 +2052,32 @@ def vorlagen():
 # Belegarten mit Anzeigename und den in der jeweiligen E-Mail verfügbaren Platzhaltern
 EMAIL_TEMPLATE_META = [
     {'doc_type': 'invoice', 'label': 'Rechnung',
-     'placeholders': ['{{anrede}}', '{{rechnung_nr}}', '{{rechnung_datum}}',
-                      '{{faellig_datum}}', '{{betrag}}', '{{signatur}}']},
+     'placeholders': ['{{rechnung_nr}}', '{{rechnung_datum}}',
+                      '{{faellig_datum}}', '{{betrag}}']},
     {'doc_type': 'offer', 'label': 'Angebot',
-     'placeholders': ['{{anrede}}', '{{angebot_nr}}', '{{angebot_datum}}',
-                      '{{gueltig_bis}}', '{{betrag}}', '{{signatur}}']},
+     'placeholders': ['{{angebot_nr}}', '{{angebot_datum}}',
+                      '{{gueltig_bis}}', '{{betrag}}']},
     {'doc_type': 'credit', 'label': 'Gutschrift',
-     'placeholders': ['{{anrede}}', '{{gutschrift_nr}}', '{{gutschrift_datum}}',
-                      '{{betrag}}', '{{signatur}}']},
+     'placeholders': ['{{gutschrift_nr}}', '{{gutschrift_datum}}',
+                      '{{betrag}}']},
     {'doc_type': 'reminder', 'label': 'Mahnung',
-     'placeholders': ['{{anrede}}', '{{mahnung_stufe}}', '{{mahnung_frist}}',
+     'placeholders': ['{{mahnung_stufe}}', '{{mahnung_frist}}',
                       '{{mahngebuehr}}', '{{rechnung_nr}}', '{{rechnung_datum}}',
-                      '{{rechnung_faellig_datum}}', '{{betrag}}', '{{signatur}}']},
+                      '{{rechnung_faellig_datum}}', '{{betrag}}']},
 ]
 
 # Zusätzlich in jeder Vorlage nutzbar
-EMAIL_COMMON_PLACEHOLDERS = ['{{kunde_firma}}', '{{kunde_vorname}}',
-                             '{{kunde_nachname}}', '{{firma}}', '{{inhaber}}']
+# Einzelfelder für die E-Mail-Vorlagen – gleiche Namen wie in den Word-Vorlagen,
+# damit sich Anschreiben und Dokument aus denselben Bausteinen zusammensetzen
+# lassen. {{anrede}} und {{signatur}} sind die einzigen zusammengesetzten.
+EMAIL_CUSTOMER_PLACEHOLDERS = ['{{kunde_anrede}}', '{{kunde_vorname}}', '{{kunde_nachname}}',
+                               '{{kunde_firma}}', '{{kunde_nr}}', '{{kunde_strasse}}',
+                               '{{kunde_plz}}', '{{kunde_stadt}}', '{{kunde_email}}',
+                               '{{kunde_telefon}}']
+EMAIL_COMPANY_PLACEHOLDERS = ['{{inhaber}}', '{{firma}}', '{{firma_strasse}}', '{{firma_plz}}',
+                              '{{firma_stadt}}', '{{firma_telefon}}', '{{firma_email}}',
+                              '{{steuernummer}}', '{{bank}}', '{{iban}}', '{{bic}}',
+                              '{{kleinunternehmer}}']
 
 
 @app.route('/email-vorlagen')
@@ -2100,7 +2093,12 @@ def email_templates():
         items.append({
             'doc_type': meta['doc_type'],
             'label': meta['label'],
-            'placeholders': meta['placeholders'] + EMAIL_COMMON_PLACEHOLDERS,
+            'placeholder_groups': [
+                {'label': 'Beleg', 'items': meta['placeholders']},
+                {'label': 'Kunde', 'items': EMAIL_CUSTOMER_PLACEHOLDERS},
+                {'label': 'Absender', 'items': EMAIL_COMPANY_PLACEHOLDERS},
+                {'label': 'Fertige Bausteine', 'items': ['{{anrede}}', '{{signatur}}']},
+            ],
             'subject': row['subject'] if row else default['subject'],
             'body': row['body'] if row else default['body'],
         })
