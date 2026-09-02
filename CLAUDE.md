@@ -229,7 +229,31 @@ Word-Vorlagen liegen in `/opt/faktura/vorlagen/`. Die App ersetzt Platzhalter in
 - **Mahnung:** {{mahnung_stufe}}, {{mahnung_datum}}, {{mahnung_frist}}, {{mahngebuehr}}, {{rechnung_nr}}, {{rechnung_datum}}, {{rechnung_faellig_datum}}, {{rechnung_betrag}}, {{gesamtbetrag}} (= Rechnung + Mahngebühr), {{notizen}}, {{positionen}} (Positionen der gemahnten Rechnung)
 
 ### {{positionen}}-Marker
-In einer Tabellenzelle platziert. Die App sucht nach diesem Marker, löscht ihn und fügt dynamisch Zeilen mit Pos/Bezeichnung/Menge/Einheit/Einzelpreis/Gesamt hinzu.
+In einer Tabellenzelle platziert. `fill_positions()` sucht die Zeile mit dem Marker,
+legt für jede Position eine **Kopie dieser Markerzeile** an (Pos/Bezeichnung/Menge/
+Einheit/Einzelpreis/Gesamt) und entfernt die Markerzeile danach.
+
+Wichtig für Änderungen an dieser Stelle:
+
+- **Nicht `table.add_row()` und nicht `cell.text = ...` verwenden.** Beides
+  verwirft die Formatierung der Vorlage — die Beträge wurden dadurch
+  linksbündig. Text deshalb über `set_cell_text()` setzen: es schreibt in den
+  vorhandenen Run und erhält Ausrichtung, Schrift und Rahmen.
+- **`freeze_table_layout()` nagelt die Spaltenbreiten fest** (`tblLayout=fixed`,
+  `tblGrid` aus den Breiten der Kopfzeile). Ohne das verteilt Word/LibreOffice
+  die Spalten nach Inhalt neu (Autofit): die Pos.-Spalte wurde breit, die
+  Zahlenspalten gequetscht. In den Vorlagen wich das `tblGrid` zusätzlich von
+  den Zellbreiten ab (Spalte 1: 1219 statt 817 Twips).
+- Spaltenbreiten der Vorlagen (Twips, Summe 9905 = 17,5 cm): Pos. 700,
+  Beschreibung 4400, Menge 950, Einheit 1150, Einzelpreis 1450, Gesamt 1255.
+  Enger sollten die vier rechten Spalten nicht werden, sonst brechen
+  Überschriften und Beträge um.
+- Die **Mahnungsvorlage hat keine Positionstabelle** (verweist auf die
+  Rechnung) — dort passiert nichts, das ist kein Fehler.
+
+Layoutänderungen immer am gerenderten PDF prüfen, nicht nur an der .docx:
+`pdftoppm -png -r 110 output/<beleg>.pdf /tmp/x` auf dem Server und das Bild
+ansehen — LibreOffice legt die Tabelle anders aus als python-docx vermuten lässt.
 
 ### {{logo}}-Marker (Bild)
 Wird durch das in den Einstellungen hinterlegte Logo als Inline-Bild ersetzt (python-docx `run.add_picture`). Verwendet wird die helle Variante (`logo_light`, für weißen Hintergrund), Fallback `logo_dark`. Die Breite stellt der Anwender in den Einstellungen per Schieberegler ein
@@ -266,7 +290,10 @@ gewünscht — nicht auf Direktversand zurückbauen. Zwei Wege, automatisch gew�
 
 - **Entwurf im Postfach** (bevorzugt, nur bei `mail_method='graph'`):
   `create_graph_draft()` legt die Mail per `POST /users/{sender}/messages` im
-  Ordner „Entwürfe" ab; der Flash verlinkt den `webLink` zum Öffnen. Das braucht
+  Ordner „Entwürfe" ab. Die Route leitet anschließend auf den `webLink` weiter,
+  und die Formulare in den Listen haben `target="_blank"` — der Entwurf geht
+  also gleich in einem neuen Tab auf, während die Belegliste stehen bleibt
+  (damit er nicht übersehen wird). Das braucht
   die Anwendungsberechtigung **Mail.ReadWrite** — `Mail.Send` allein genügt
   NICHT. Beide sind im Tenant erteilt (Stand 02.09.2026, mit Administrator-
   zustimmung); `graph_can_draft()` prüft das vorab am `roles`-Claim des
