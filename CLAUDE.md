@@ -198,7 +198,21 @@ Platzhalter (`apply_placeholders`). Verfügbare Platzhalter: `{{anrede}}`, `{{si
 `{{betrag}}`, belegspezifisch `{{rechnung_nr}}`/`{{rechnung_datum}}`/`{{faellig_datum}}`,
 `{{angebot_nr}}`/`{{angebot_datum}}`/`{{gueltig_bis}}`, `{{gutschrift_nr}}`/`{{gutschrift_datum}}`,
 `{{mahnung_stufe}}`/`{{mahnung_frist}}`/`{{mahngebuehr}}`/`{{rechnung_faellig_datum}}`,
-sowie `{{kunde_firma}}`/`{{kunde_vorname}}`/`{{kunde_nachname}}`/`{{firma}}`/`{{inhaber}}`.
+sowie **alle Einzelfelder zu Kunde und Absender** — dieselben Namen wie in den
+Word-Vorlagen (`{{kunde_anrede}}`, `{{kunde_nachname}}`, `{{kunde_firma}}`,
+`{{kunde_nr}}`, `{{kunde_strasse}}`, `{{kunde_plz}}`, `{{kunde_stadt}}`,
+`{{kunde_email}}`, `{{kunde_telefon}}`, `{{inhaber}}`, `{{firma}}`,
+`{{firma_strasse}}`, `{{firma_plz}}`, `{{firma_stadt}}`, `{{firma_telefon}}`,
+`{{firma_email}}`, `{{steuernummer}}`, `{{bank}}`, `{{iban}}`, `{{bic}}`,
+`{{kleinunternehmer}}`). Anrede und Grußformel lassen sich damit im Vorlagentext
+selbst zusammenstellen, statt `{{anrede}}`/`{{signatur}}` zu verwenden.
+
+Die Werte liefern `company_placeholders(s)` und `customer_placeholders(cust)` —
+**eine Quelle für Word- und E-Mail-Vorlagen**, damit die Namen nicht wieder
+auseinanderlaufen. Neue Felder deshalb dort ergänzen, nicht an zwei Stellen.
+`{{anrede}}` (mail_anrede) und `{{signatur}}` (mail_signatur) bleiben als
+zusammengesetzte Bausteine bestehen; die Grußformel "Mit freundlichen Grüßen"
+steckt fest in `mail_signatur()`.
 Bearbeiten unter `/email-vorlagen` (Speichern: `/email-vorlagen/save/<doc_type>`,
 Zurücksetzen: `/email-vorlagen/reset/<doc_type>`). Nicht verwechseln mit den
 **Word-Dokumentvorlagen** (`vorlagen/*.docx`, Menü „Dokumentvorlagen").
