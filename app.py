@@ -1988,7 +1988,9 @@ def vorlage_muster(doc_type):
         beispiel.update({
             '{{gutschrift_nr}}': 'GU-2604001',
             '{{gutschrift_datum}}': '10.04.2026',
-            '{{gesamtbetrag}}': '500,00 €',
+            # Summe der Musterpositionen (850 + 500 + 1500), damit das Muster
+            # in sich stimmig ist
+            '{{gesamtbetrag}}': '2.850,00 €',
         })
         output_name = 'Muster_Gutschrift.docx'
     elif doc_type == 'mahnung':
