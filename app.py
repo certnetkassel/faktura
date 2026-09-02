@@ -1355,15 +1355,40 @@ def generate_doc(doc_type, doc_id):
     return send_file(output_path, as_attachment=True, download_name=output_name)
 
 
+# Feste Fundorte für LibreOffice. Nötig, weil die systemd-Unit den PATH auf
+# "/opt/faktura/venv/bin" setzt – dort steht soffice nicht, und shutil.which()
+# sucht ausschließlich im PATH. Ohne diese Liste scheitert die PDF-Umwandlung im
+# Dienst mit "nicht gefunden", obwohl LibreOffice installiert ist (auf der
+# SSH-Shell mit vollem PATH funktioniert sie dagegen).
+SOFFICE_CANDIDATES = (
+    '/usr/bin/soffice',
+    '/usr/bin/libreoffice',
+    '/usr/lib/libreoffice/program/soffice',
+    '/opt/libreoffice/program/soffice',
+    '/snap/bin/libreoffice',
+)
+
+
+def find_soffice():
+    """Pfad zur LibreOffice-Binary oder None."""
+    found = shutil.which('soffice') or shutil.which('libreoffice')
+    if found:
+        return found
+    for path in SOFFICE_CANDIDATES:
+        if os.path.isfile(path) and os.access(path, os.X_OK):
+            return path
+    return None
+
+
 def convert_to_pdf(docx_path):
     """Wandelt eine .docx-Datei per LibreOffice (headless) in PDF um und gibt den
     PDF-Pfad zurück. Wirft DocGenError bei Fehlern (dann wird nichts versendet).
     www-data hat kein nutzbares HOME, deshalb ein eigenes, beschreibbares
     LibreOffice-Profil je Aufruf – das vermeidet auch das Single-Instance-Lock."""
-    soffice = shutil.which('soffice') or shutil.which('libreoffice')
+    soffice = find_soffice()
     if not soffice:
         raise DocGenError('PDF-Umwandlung nicht möglich: LibreOffice (soffice) '
-                          'ist auf dem Server nicht installiert.')
+                          'wurde auf dem Server nicht gefunden.')
     out_dir = os.path.dirname(docx_path)
     profile = tempfile.mkdtemp(prefix='lo_profile_')
     try:
