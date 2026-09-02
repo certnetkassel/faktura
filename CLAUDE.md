@@ -257,14 +257,41 @@ Die Schritt-für-Schritt-Anleitung für das Entra Admin Center steckt als (i)-Pa
 in `templates/settings.html`. Testversand: `POST /settings/test-mail` (Button in den
 Einstellungen, nutzt die **gespeicherten** Werte).
 
-**Anhang immer als PDF:** `send_email` erzeugt das Dokument per `build_document()`
-(→ .docx) und wandelt es danach mit `convert_to_pdf()` in ein **PDF** um; angehängt
-und versendet wird ausschließlich das PDF, nie die .docx. Die Umwandlung nutzt
+**WICHTIG – die App versendet Belege NICHT selbst.** Der Knopf ✉ an Rechnung,
+Angebot, Gutschrift und Mahnung (`POST /draft-email/<doc_type>/<id>`, Funktion
+`draft_email`) bereitet die E-Mail nur vor: Empfänger aus den Kundendaten,
+Betreff und Anschreiben aus der E-Mail-Vorlage, Beleg als PDF im Anhang. Gesendet
+wird **von Hand** nach Prüfung durch den Anwender. Das ist ausdrücklich so
+gewünscht — nicht auf Direktversand zurückbauen. Zwei Wege, automatisch gewählt:
+
+- **Entwurf im Postfach** (bevorzugt, nur bei `mail_method='graph'`):
+  `create_graph_draft()` legt die Mail per `POST /users/{sender}/messages` im
+  Ordner „Entwürfe" ab; der Flash verlinkt den `webLink` zum Öffnen. Das braucht
+  die Anwendungsberechtigung **Mail.ReadWrite** — `Mail.Send` allein genügt
+  NICHT. `graph_can_draft()` prüft das vorab am `roles`-Claim des Access-Tokens.
+- **`.eml`-Datei zum Download** (Fallback und SMTP-Weg): `build_eml()` baut die
+  Mail als MIME-Nachricht mit dem Header **`X-Unsent: 1`** — nur damit öffnet
+  Outlook sie als noch nicht gesendeten Entwurf **mit Senden-Knopf** statt als
+  empfangene Nachricht. Beim Download wird bewusst kein Flash gesetzt (er
+  erschiene erst auf der nächsten Seite).
+
+Weil noch nichts versendet ist, setzt `draft_email` den Belegstatus **nicht**
+mehr automatisch auf „Gesendet" und schreibt **keinen** `email_log`-Eintrag; der
+Status wird nach dem Senden per Dropdown in der Liste gesetzt. Echten Versand
+macht nur noch der Testversand in den Einstellungen (`send_mail()` →
+`send_mail_graph`/`send_mail_smtp`, bleibt bestehen).
+
+**Anhang immer als PDF:** `build_pdf()` erzeugt das Dokument per
+`build_document()` (→ .docx) und wandelt es mit `convert_to_pdf()` in ein **PDF**
+um; angehängt wird ausschließlich das PDF, nie die .docx. Die Umwandlung nutzt
 **LibreOffice headless** (`soffice --headless --convert-to pdf`, System­paket
 `libreoffice`, auf dem Server unter `/usr/bin/soffice`) mit einem eigenen
 `UserInstallation`-Profil je Aufruf (www-data hat kein nutzbares HOME; vermeidet
-auch das Single-Instance-Lock). Schlägt die Umwandlung fehl, wird nichts versendet
-(Flash-Fehler statt docx-Fallback). Der Button **„Word generieren"** (`/generate/...`)
+auch das Single-Instance-Lock). Schlägt die Umwandlung fehl, entsteht keine Mail
+(Flash-Fehler statt docx-Fallback).
+
+Dieselbe Umwandlung nutzt der Knopf **„PDF generieren"** (`/generate-pdf/...`,
+Funktion `generate_pdf`) neben **„Word generieren"** (`/generate/...`) — letzterer
 liefert weiterhin bewusst die **.docx** zum Bearbeiten.
 
 Hinweis: `Mail.Send` als Anwendungsberechtigung erlaubt den Versand aus allen
@@ -302,8 +329,9 @@ Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften �
 - Automatische Überfällig-Markierung bei abgelaufenem Fälligkeitsdatum
 - Angebot → Rechnung umwandeln (kopiert Positionen)
 - Mahnwesen (mehrstufig, mit Mahngebühr)
-- Word-Dokumentgenerierung aus Vorlagen
-- E-Mail-Versand (Microsoft Graph oder SMTP, mit Dokument als Anhang) inkl. Testversand
+- Word-Dokumentgenerierung aus Vorlagen, wahlweise Download als .docx oder PDF
+- E-Mail-Vorbereitung mit PDF-Anhang (Entwurf im Postfach oder .eml-Datei) —
+  gesendet wird von Hand; echter Versand nur beim Testversand
 - Dokumentvorlagen-Verwaltung (Word: Upload, Download, Muster mit Beispieldaten)
 - E-Mail-Vorlagen je Belegart mit Platzhaltern anpassbar (Betreff + Text)
 - Dark/Light Theme
@@ -328,6 +356,9 @@ Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften �
   die Datei wird als statisches File direkt ausgeliefert (kein Template-Cache).
 
 ## Offene Punkte / Geplante Erweiterungen
+
+- **Mail.ReadWrite** im Entra Admin Center ergänzen, damit der Entwurf direkt im
+  Postfach landet statt als .eml-Download (Stand 02.09.2026: nur `Mail.Send`)
 
 - DATEV-Export
 - Wiederkehrende Rechnungen
