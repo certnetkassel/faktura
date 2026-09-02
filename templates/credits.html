@@ -19,8 +19,9 @@
         <td>{{ "%.2f"|format(cr.total) }} €</td>
         <td class="actions">
           <a href="{{ url_for('generate_doc', doc_type='credit', doc_id=cr.id) }}" class="btn-icon" title="Word generieren">&#8681;</a>
-          <form method="POST" action="{{ url_for('send_email', doc_type='credit', doc_id=cr.id) }}" style="display:inline">
-            <button type="submit" class="btn-icon" title="Per E-Mail senden">&#9993;</button>
+          <a href="{{ url_for('generate_pdf', doc_type='credit', doc_id=cr.id) }}" class="btn-icon" title="PDF generieren">&#128196;</a>
+          <form method="POST" action="{{ url_for('draft_email', doc_type='credit', doc_id=cr.id) }}" style="display:inline">
+            <button type="submit" class="btn-icon" title="E-Mail-Entwurf erstellen (sendet nicht)">&#9993;</button>
           </form>
           <form method="POST" action="{{ url_for('credit_delete', id=cr.id) }}" onsubmit="return confirm('Gutschrift löschen?')" style="display:inline">
             <button type="submit" class="btn-icon danger" title="Löschen">&#10005;</button>

@@ -1,4 +1,6 @@
 import base64
+import io
+import json
 import os
 import shutil
 import smtplib
@@ -1382,6 +1384,27 @@ def convert_to_pdf(docx_path):
         shutil.rmtree(profile, ignore_errors=True)
 
 
+def build_pdf(doc_type, doc_id):
+    """Erzeugt den Beleg und wandelt ihn in PDF um.
+    Gibt (Pfad, Dateiname) des PDFs zurück."""
+    docx_path, docx_name = build_document(doc_type, doc_id)
+    pdf_path = convert_to_pdf(docx_path)
+    return pdf_path, os.path.splitext(docx_name)[0] + '.pdf'
+
+
+@app.route('/generate-pdf/<doc_type>/<int:doc_id>')
+@login_required
+def generate_pdf(doc_type, doc_id):
+    """Beleg als PDF herunterladen (fertiges Dokument zum Weitergeben).
+    Zum Bearbeiten liefert /generate/... weiterhin die .docx."""
+    try:
+        pdf_path, pdf_name = build_pdf(doc_type, doc_id)
+    except DocGenError as e:
+        flash(str(e), 'error')
+        return redirect(request.referrer or url_for('dashboard'))
+    return send_file(pdf_path, as_attachment=True, download_name=pdf_name)
+
+
 # ── E-Mail-Versand ──
 #
 # Zwei Verfahren, umschaltbar in den Einstellungen (settings.mail_method):
@@ -1392,6 +1415,9 @@ def convert_to_pdf(docx_path):
 GRAPH_TOKEN_URL = 'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token'
 GRAPH_SCOPE = 'https://graph.microsoft.com/.default'
 GRAPH_SENDMAIL_URL = 'https://graph.microsoft.com/v1.0/users/{sender}/sendMail'
+# Entwurf im Postfach anlegen (statt sofort senden). Braucht die
+# Anwendungsberechtigung Mail.ReadWrite – Mail.Send allein genügt dafür NICHT.
+GRAPH_MESSAGES_URL = 'https://graph.microsoft.com/v1.0/users/{sender}/messages'
 # sendMail überträgt Anhänge inline (base64). Größere Dateien bräuchten eine
 # Upload-Session – für Rechnungen im docx-Format reicht das Limit deutlich.
 GRAPH_MAX_ATTACHMENT_BYTES = 3 * 1024 * 1024
@@ -1476,9 +1502,12 @@ def get_graph_token(s):
     return data['access_token']
 
 
-def send_mail_graph(s, recipient, subject, body, attachments):
-    """Versand über Microsoft Graph (POST /users/{sender}/sendMail)."""
-    sender = get_graph_sender(s)
+def attachment_mimetype(filename):
+    return 'application/pdf' if filename.lower().endswith('.pdf') else 'application/octet-stream'
+
+
+def build_graph_message(recipient, subject, body, attachments):
+    """Baut das Graph-Nachrichtenobjekt (für sendMail und für Entwürfe)."""
     message = {
         'subject': subject,
         'body': {'contentType': 'Text', 'content': body},
@@ -1494,11 +1523,75 @@ def send_mail_graph(s, recipient, subject, body, attachments):
             message['attachments'].append({
                 '@odata.type': '#microsoft.graph.fileAttachment',
                 'name': filename,
-                'contentType': 'application/octet-stream',
+                'contentType': attachment_mimetype(filename),
                 'contentBytes': base64.b64encode(content).decode('ascii'),
             })
+    return message
 
-    payload = {'message': message,
+
+def graph_token_roles(s):
+    """Liest die Anwendungsberechtigungen (roles) aus dem Access-Token.
+    Gibt None zurück, wenn sie sich nicht ermitteln lassen."""
+    try:
+        payload = get_graph_token(s).split('.')[1]
+        payload += '=' * (-len(payload) % 4)
+        claims = json.loads(base64.urlsafe_b64decode(payload))
+        roles = claims.get('roles')
+        return roles if isinstance(roles, list) else None
+    except Exception:
+        return None
+
+
+def graph_can_draft(s):
+    """Darf die App-Registrierung Entwürfe im Postfach anlegen? Bei unbekannten
+    Rollen wird es versucht – ein Fehlschlag führt zum .eml-Download."""
+    roles = graph_token_roles(s)
+    return roles is None or 'Mail.ReadWrite' in roles
+
+
+def create_graph_draft(s, recipient, subject, body, attachments):
+    """Legt die E-Mail als Entwurf im Postfach ab (POST /users/{sender}/messages)
+    und gibt den Link zum Öffnen zurück. Es wird nichts versendet."""
+    response = requests.post(
+        GRAPH_MESSAGES_URL.format(sender=get_graph_sender(s)),
+        headers={'Authorization': f'Bearer {get_graph_token(s)}',
+                 'Content-Type': 'application/json'},
+        json=build_graph_message(recipient, subject, body, attachments), timeout=60)
+    if response.status_code not in (200, 201):
+        raise RuntimeError(f"Entwurf konnte nicht angelegt werden "
+                           f"({response.status_code}): {_graph_error(response)}")
+    try:
+        return response.json().get('webLink', '')
+    except ValueError:
+        return ''
+
+
+def build_eml(s, recipient, subject, body, attachments):
+    """Baut die E-Mail als .eml-Datei (Bytes). Der Header X-Unsent sorgt dafür,
+    dass Outlook sie als noch nicht gesendeten Entwurf mit Senden-Button öffnet."""
+    msg = MIMEMultipart()
+    msg['From'] = (get_graph_sender(s) if get_mail_method(s) == 'graph'
+                   else setting(s, 'smtp_from'))
+    msg['To'] = recipient
+    msg['Subject'] = subject
+    msg['X-Unsent'] = '1'
+    msg.attach(MIMEText(body, 'plain', 'utf-8'))
+
+    for filename, content in attachments:
+        subtype = 'pdf' if filename.lower().endswith('.pdf') else 'octet-stream'
+        part = MIMEBase('application', subtype)
+        part.set_payload(content)
+        encoders.encode_base64(part)
+        part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
+        msg.attach(part)
+
+    return msg.as_bytes()
+
+
+def send_mail_graph(s, recipient, subject, body, attachments):
+    """Versand über Microsoft Graph (POST /users/{sender}/sendMail)."""
+    sender = get_graph_sender(s)
+    payload = {'message': build_graph_message(recipient, subject, body, attachments),
                'saveToSentItems': bool(setting(s, 'graph_save_sent', 1))}
     response = requests.post(
         GRAPH_SENDMAIL_URL.format(sender=sender),
@@ -1614,9 +1707,15 @@ def test_mail():
     return redirect(url_for('settings'))
 
 
-@app.route('/send-email/<doc_type>/<int:doc_id>', methods=['POST'])
+@app.route('/draft-email/<doc_type>/<int:doc_id>', methods=['POST'])
 @login_required
-def send_email(doc_type, doc_id):
+def draft_email(doc_type, doc_id):
+    """Bereitet die E-Mail zum Beleg vor – Empfänger, Betreff, Anschreiben und
+    das PDF als Anhang – und verschickt sie BEWUSST NICHT. Geprüft und gesendet
+    wird von Hand:
+      * Microsoft Graph mit Mail.ReadWrite: Entwurf landet im Postfach
+      * sonst: .eml-Datei zum Download, öffnet in Outlook als Entwurf
+    Der Belegstatus bleibt unverändert, weil noch nichts versendet wurde."""
     s = get_settings()
     if not mail_is_configured(s):
         flash(mail_config_hint(s), 'error')
@@ -1690,42 +1789,40 @@ def send_email(doc_type, doc_id):
     body = apply_placeholders(body_tmpl, ph)
 
     # Dokument bei Bedarf automatisch erzeugen (Output-Ordner ist nur temporär),
-    # damit "Per E-Mail senden" nicht voraussetzt, dass vorher "Word generieren"
-    # geklickt wurde. Anschließend in PDF umwandeln – versendet wird ausschließlich
-    # das PDF, nie die .docx.
+    # damit der Entwurf nicht voraussetzt, dass vorher "Word generieren" geklickt
+    # wurde. Angehängt wird ausschließlich das PDF, nie die .docx.
     try:
-        docx_path, docx_name = build_document(doc_type, doc_id)
-        pdf_path = convert_to_pdf(docx_path)
+        pdf_path, pdf_name = build_pdf(doc_type, doc_id)
     except DocGenError as e:
         flash(str(e), 'error')
         db.close()
         return redirect(request.referrer or url_for('dashboard'))
-
-    pdf_name = os.path.splitext(docx_name)[0] + '.pdf'
-
-    try:
-        with open(pdf_path, 'rb') as f:
-            attachments = [(pdf_name, f.read())]
-
-        send_mail(s, recipient, subject, body, attachments)
-
-        # Log email
-        db.execute("INSERT INTO email_log (doc_type,doc_id,recipient,subject) VALUES(?,?,?,?)",
-                   [doc_type, doc_id, recipient, subject])
-
-        # Update status if applicable
-        if doc_type == 'invoice':
-            db.execute("UPDATE invoices SET status='Gesendet' WHERE id=? AND status='Entwurf'", [doc_id])
-        elif doc_type == 'offer':
-            db.execute("UPDATE offers SET status='Gesendet' WHERE id=? AND status='Entwurf'", [doc_id])
-
-        db.commit()
-        flash(f'E-Mail an {recipient} gesendet.', 'success')
-    except Exception as e:
-        flash(f'E-Mail-Fehler: {str(e)}', 'error')
-
     db.close()
-    return redirect(request.referrer or url_for('dashboard'))
+
+    with open(pdf_path, 'rb') as f:
+        attachments = [(pdf_name, f.read())]
+
+    # Bevorzugt als Entwurf ins Postfach – dort kann die Mail vor dem Senden
+    # geprüft werden. Fehlt die Berechtigung dafür, gibt es die .eml-Datei.
+    if get_mail_method(s) == 'graph' and graph_can_draft(s):
+        try:
+            weblink = create_graph_draft(s, recipient, subject, body, attachments)
+            flash(f'Entwurf für {recipient} im Postfach abgelegt (Ordner "Entwürfe"). '
+                  f'Bitte prüfen und dort selbst senden – der Belegstatus bleibt '
+                  f'so lange unverändert.', 'success')
+            if weblink:
+                flash(weblink, 'link')
+            return redirect(request.referrer or url_for('dashboard'))
+        except Exception as e:
+            # Kein Entwurf möglich (z.B. fehlende Berechtigung) – .eml ausliefern
+            app.logger.warning('Graph-Entwurf fehlgeschlagen, .eml-Fallback: %s', e)
+
+    # Kein Flash beim Download: die Meldung würde erst auf der nächsten Seite
+    # erscheinen. Die heruntergeladene Datei ist die Rückmeldung.
+    eml_name = os.path.splitext(pdf_name)[0] + '.eml'
+    return send_file(io.BytesIO(build_eml(s, recipient, subject, body, attachments)),
+                     as_attachment=True, download_name=eml_name,
+                     mimetype='message/rfc822')
 
 
 # ── API for article data ──

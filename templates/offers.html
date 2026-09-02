@@ -25,8 +25,9 @@
         </td>
         <td class="actions">
           <a href="{{ url_for('generate_doc', doc_type='offer', doc_id=o.id) }}" class="btn-icon" title="Word generieren">&#8681;</a>
-          <form method="POST" action="{{ url_for('send_email', doc_type='offer', doc_id=o.id) }}" style="display:inline">
-            <button type="submit" class="btn-icon" title="Per E-Mail senden">&#9993;</button>
+          <a href="{{ url_for('generate_pdf', doc_type='offer', doc_id=o.id) }}" class="btn-icon" title="PDF generieren">&#128196;</a>
+          <form method="POST" action="{{ url_for('draft_email', doc_type='offer', doc_id=o.id) }}" style="display:inline">
+            <button type="submit" class="btn-icon" title="E-Mail-Entwurf erstellen (sendet nicht)">&#9993;</button>
           </form>
           {% if o.status != 'Angenommen' %}
           <form method="POST" action="{{ url_for('offer_to_invoice', id=o.id) }}" style="display:inline">
