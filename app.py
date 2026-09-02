@@ -261,10 +261,58 @@ def get_logo_path(s, prefer='light'):
     return None
 
 
+def set_cell_text(cell, text):
+    """Schreibt Text in eine Zelle, ohne ihre Formatierung zu verlieren.
+    `cell.text = ...` würde Absatzausrichtung und Schriftformat verwerfen –
+    deshalb den ersten Run weiterverwenden und den Rest entfernen."""
+    paragraph = cell.paragraphs[0]
+    for extra in cell.paragraphs[1:]:
+        extra._element.getparent().remove(extra._element)
+    runs = paragraph.runs
+    if runs:
+        runs[0].text = text
+        for run in runs[1:]:
+            run._element.getparent().remove(run._element)
+    else:
+        paragraph.add_run(text)
+
+
+def freeze_table_layout(table):
+    """Tabellenbreiten festnageln. Ohne das rechnet Word/LibreOffice die Spalten
+    nach Inhalt neu (Autofit): die schmale Pos.-Spalte wird breit, Menge,
+    Einheit, Einzelpreis und Gesamt werden gequetscht. Das tblGrid der Vorlage
+    weicht dabei von den tatsächlichen Zellbreiten ab, deshalb wird es aus der
+    Kopfzeile neu aufgebaut."""
+    from docx.oxml import OxmlElement
+    from docx.oxml.ns import qn
+
+    table.autofit = False
+    tblPr = table._tbl.tblPr
+    layout = tblPr.find(qn('w:tblLayout'))
+    if layout is None:
+        layout = OxmlElement('w:tblLayout')
+        tblPr.append(layout)
+    layout.set(qn('w:type'), 'fixed')
+
+    if not table.rows:
+        return
+    widths = [cell.width.twips if cell.width else None for cell in table.rows[0].cells]
+    grid = table._tbl.find(qn('w:tblGrid'))
+    if grid is not None and all(w for w in widths):
+        for col, width in zip(grid.findall(qn('w:gridCol')), widths):
+            col.set(qn('w:w'), str(width))
+
+
 def fill_positions(doc, items):
     """Ersetzt den {{positionen}}-Marker durch je eine Tabellenzeile pro Position.
-    Die Markerzeile wird durch die Positionszeilen ersetzt und anschließend entfernt
-    (sonst bliebe an ihrer Stelle eine leere Zeile stehen)."""
+    Jede Zeile ist eine Kopie der Markerzeile – so bleiben Spaltenbreiten,
+    Ausrichtung (z.B. rechtsbündige Beträge), Schrift und Rahmen der Vorlage
+    erhalten. Die Markerzeile selbst wird anschließend entfernt (sonst bliebe an
+    ihrer Stelle eine leere Zeile stehen)."""
+    import copy
+
+    from docx.table import _Row
+
     for table in doc.tables:
         marker_row = None
         for row in table.rows:
@@ -274,20 +322,20 @@ def fill_positions(doc, items):
         if marker_row is None:
             continue
         for item in items:
-            new_row = table.add_row()
-            cells = new_row.cells
+            new_tr = copy.deepcopy(marker_row._tr)
+            marker_row._tr.addprevious(new_tr)
+            cells = _Row(new_tr, table).cells
             if len(cells) >= 5:
-                cells[0].text = str(item['position'])
-                cells[1].text = item['description']
-                cells[2].text = str(item['quantity'])
-                cells[3].text = item['unit']
-                cells[4].text = f"{item['price']:.2f} €"
+                set_cell_text(cells[0], str(item['position']))
+                set_cell_text(cells[1], item['description'])
+                set_cell_text(cells[2], str(item['quantity']))
+                set_cell_text(cells[3], item['unit'])
+                set_cell_text(cells[4], f"{item['price']:.2f} €")
                 if len(cells) >= 6:
-                    cells[5].text = f"{item['total']:.2f} €"
-            # neue Zeile an die Marker-Position schieben (Reihenfolge bleibt erhalten)
-            marker_row._tr.addprevious(new_row._tr)
+                    set_cell_text(cells[5], f"{item['total']:.2f} €")
         # Markerzeile entfernen
         marker_row._tr.getparent().remove(marker_row._tr)
+        freeze_table_layout(table)
         break  # nur eine Positionstabelle
 
 
@@ -1857,6 +1905,12 @@ def draft_email(doc_type, doc_id):
             flash(f'Entwurf für {recipient} im Postfach abgelegt (Ordner "Entwürfe"). '
                   f'Bitte prüfen und dort selbst senden – der Belegstatus bleibt '
                   f'so lange unverändert.', 'success')
+            # Das Formular wird mit target="_blank" abgeschickt: der Entwurf geht
+            # in einem neuen Tab auf, die Belegliste bleibt stehen. So wird er
+            # nicht übersehen. Die Flash-Meldung erscheint dort beim nächsten
+            # Seitenaufruf.
+            if weblink.startswith('https://'):
+                return redirect(weblink)
             if weblink:
                 flash(weblink, 'link')
             return redirect(request.referrer or url_for('dashboard'))

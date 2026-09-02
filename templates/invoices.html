@@ -31,7 +31,7 @@
         <td class="actions">
           <a href="{{ url_for('generate_doc', doc_type='invoice', doc_id=i.id) }}" class="btn-icon" title="Word generieren">&#8681;</a>
           <a href="{{ url_for('generate_pdf', doc_type='invoice', doc_id=i.id) }}" class="btn-icon" title="PDF generieren">&#128196;</a>
-          <form method="POST" action="{{ url_for('draft_email', doc_type='invoice', doc_id=i.id) }}" style="display:inline">
+          <form method="POST" action="{{ url_for('draft_email', doc_type='invoice', doc_id=i.id) }}" target="_blank" style="display:inline">
             <button type="submit" class="btn-icon" title="E-Mail-Entwurf erstellen (sendet nicht)">&#9993;</button>
           </form>
           <a href="{{ url_for('invoice_edit', id=i.id) }}" class="btn-icon" title="Bearbeiten">&#9998;</a>
