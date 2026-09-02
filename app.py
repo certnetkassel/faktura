@@ -1661,6 +1661,19 @@ def create_graph_draft(s, recipient, subject, body, attachments):
         return ''
 
 
+# Ordner "Entwürfe" in Outlook im Web – sicherer Rückfallweg, falls der
+# Direktlink auf den Entwurf einmal nicht greift.
+OUTLOOK_DRAFTS_URL = 'https://outlook.office.com/mail/drafts'
+
+
+def draft_open_url(weblink):
+    """Öffnungslink für einen Entwurf. Graph liefert den `webLink` mit
+    `viewmodel=ReadMessageItem` (Lesemodus). Für Entwürfe zeigt Outlook dort nur
+    „Diese Nachricht wurde möglicherweise verschoben oder gelöscht“ – sie müssen
+    im Verfassen-Modus geöffnet werden."""
+    return weblink.replace('viewmodel=ReadMessageItem', 'viewmodel=ComposeMessageItem')
+
+
 def build_eml(s, recipient, subject, body, attachments):
     """Baut die E-Mail als .eml-Datei (Bytes). Der Header X-Unsent sorgt dafür,
     dass Outlook sie als noch nicht gesendeten Entwurf mit Senden-Button öffnet."""
@@ -1905,14 +1918,14 @@ def draft_email(doc_type, doc_id):
             flash(f'Entwurf für {recipient} im Postfach abgelegt (Ordner "Entwürfe"). '
                   f'Bitte prüfen und dort selbst senden – der Belegstatus bleibt '
                   f'so lange unverändert.', 'success')
+            # Rückfallweg für den Fall, dass der Direktlink nicht greift.
+            flash(OUTLOOK_DRAFTS_URL, 'link')
             # Das Formular wird mit target="_blank" abgeschickt: der Entwurf geht
             # in einem neuen Tab auf, die Belegliste bleibt stehen. So wird er
-            # nicht übersehen. Die Flash-Meldung erscheint dort beim nächsten
+            # nicht übersehen. Die Flash-Meldungen erscheinen dort beim nächsten
             # Seitenaufruf.
             if weblink.startswith('https://'):
-                return redirect(weblink)
-            if weblink:
-                flash(weblink, 'link')
+                return redirect(draft_open_url(weblink))
             return redirect(request.referrer or url_for('dashboard'))
         except Exception as e:
             # Kein Entwurf möglich (z.B. fehlende Berechtigung) – .eml ausliefern
