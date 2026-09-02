@@ -1369,6 +1369,23 @@ SOFFICE_CANDIDATES = (
 )
 
 
+# Übliche Systempfade für den soffice-Aufruf. /usr/bin/soffice ist ein
+# Shell-Skript und ruft dirname, basename, ls und sed auf – mit dem PATH der
+# systemd-Unit (nur venv/bin) findet es diese Werkzeuge nicht und bricht mit
+# "dirname: not found" ab.
+SYSTEM_PATH_DIRS = ('/usr/local/bin', '/usr/bin', '/bin', '/usr/local/sbin',
+                    '/usr/sbin', '/sbin')
+
+
+def soffice_env():
+    """Umgebung für den LibreOffice-Aufruf: PATH um die Systempfade ergänzt."""
+    env = dict(os.environ)
+    dirs = [d for d in env.get('PATH', '').split(os.pathsep) if d]
+    dirs += [d for d in SYSTEM_PATH_DIRS if d not in dirs]
+    env['PATH'] = os.pathsep.join(dirs)
+    return env
+
+
 def find_soffice():
     """Pfad zur LibreOffice-Binary oder None."""
     found = shutil.which('soffice') or shutil.which('libreoffice')
@@ -1391,16 +1408,21 @@ def convert_to_pdf(docx_path):
                           'wurde auf dem Server nicht gefunden.')
     out_dir = os.path.dirname(docx_path)
     profile = tempfile.mkdtemp(prefix='lo_profile_')
+    pdf_path = os.path.splitext(docx_path)[0] + '.pdf'
+    # Eine ältere PDF gleichen Namens zuerst wegräumen. Sonst gilt sie unten als
+    # Ergebnis, obwohl die Umwandlung gescheitert ist – und es würde ein
+    # veralteter Beleg angehängt.
+    if os.path.exists(pdf_path):
+        os.remove(pdf_path)
     try:
         try:
             result = subprocess.run(
                 [soffice, '--headless', '--nologo', '--norestore',
                  f'-env:UserInstallation=file://{profile}',
                  '--convert-to', 'pdf', '--outdir', out_dir, docx_path],
-                capture_output=True, timeout=120)
+                capture_output=True, timeout=120, env=soffice_env())
         except subprocess.TimeoutExpired:
             raise DocGenError('PDF-Umwandlung hat zu lange gedauert.')
-        pdf_path = os.path.splitext(docx_path)[0] + '.pdf'
         if not os.path.exists(pdf_path):
             detail = result.stderr.decode('utf-8', 'replace').strip()[:200]
             raise DocGenError(f'PDF-Umwandlung fehlgeschlagen. {detail}'.strip())
