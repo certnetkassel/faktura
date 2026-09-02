@@ -285,7 +285,13 @@ macht nur noch der Testversand in den Einstellungen (`send_mail()` →
 `build_document()` (→ .docx) und wandelt es mit `convert_to_pdf()` in ein **PDF**
 um; angehängt wird ausschließlich das PDF, nie die .docx. Die Umwandlung nutzt
 **LibreOffice headless** (`soffice --headless --convert-to pdf`, System­paket
-`libreoffice`, auf dem Server unter `/usr/bin/soffice`) mit einem eigenen
+`libreoffice`, auf dem Server unter `/usr/bin/soffice`). Gesucht wird die Binary
+mit `find_soffice()`: `shutil.which()` allein reicht NICHT, weil die
+systemd-Unit `PATH=/opt/faktura/venv/bin` setzt — im Dienst schlug die
+Umwandlung deshalb mit „nicht gefunden" fehl, während sie auf der SSH-Shell mit
+vollem PATH lief. Wer PDF-Funktionen testet, muss das im Dienst-Kontext tun,
+z.B. `sudo -u www-data env -i PATH=/opt/faktura/venv/bin venv/bin/python ...`.
+Die Umwandlung läuft mit einem eigenen
 `UserInstallation`-Profil je Aufruf (www-data hat kein nutzbares HOME; vermeidet
 auch das Single-Instance-Lock). Schlägt die Umwandlung fehl, entsteht keine Mail
 (Flash-Fehler statt docx-Fallback).
