@@ -268,7 +268,11 @@ gewünscht — nicht auf Direktversand zurückbauen. Zwei Wege, automatisch gew�
   `create_graph_draft()` legt die Mail per `POST /users/{sender}/messages` im
   Ordner „Entwürfe" ab; der Flash verlinkt den `webLink` zum Öffnen. Das braucht
   die Anwendungsberechtigung **Mail.ReadWrite** — `Mail.Send` allein genügt
-  NICHT. `graph_can_draft()` prüft das vorab am `roles`-Claim des Access-Tokens.
+  NICHT. Beide sind im Tenant erteilt (Stand 02.09.2026, mit Administrator-
+  zustimmung); `graph_can_draft()` prüft das vorab am `roles`-Claim des
+  Access-Tokens. Nach einer Berechtigungsänderung `systemctl restart faktura` —
+  `_graph_token_cache` hält das alte Token sonst bis zu einer Stunde und die
+  neue Rolle wirkt scheinbar nicht.
 - **`.eml`-Datei zum Download** (Fallback und SMTP-Weg): `build_eml()` baut die
   Mail als MIME-Nachricht mit dem Header **`X-Unsent: 1`** — nur damit öffnet
   Outlook sie als noch nicht gesendeten Entwurf **mit Senden-Knopf** statt als
@@ -362,9 +366,6 @@ Dashboard → Kunden → Artikel → Angebote → Rechnungen → Gutschriften �
   die Datei wird als statisches File direkt ausgeliefert (kein Template-Cache).
 
 ## Offene Punkte / Geplante Erweiterungen
-
-- **Mail.ReadWrite** im Entra Admin Center ergänzen, damit der Entwurf direkt im
-  Postfach landet statt als .eml-Download (Stand 02.09.2026: nur `Mail.Send`)
 
 - DATEV-Export
 - Wiederkehrende Rechnungen
