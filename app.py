@@ -1645,8 +1645,8 @@ def graph_can_draft(s):
 
 
 def create_graph_draft(s, recipient, subject, body, attachments):
-    """Legt die E-Mail als Entwurf im Postfach ab (POST /users/{sender}/messages)
-    und gibt den Link zum Öffnen zurück. Es wird nichts versendet."""
+    """Legt die E-Mail als Entwurf im Postfach ab
+    (POST /users/{sender}/messages). Es wird nichts versendet."""
     response = requests.post(
         GRAPH_MESSAGES_URL.format(sender=get_graph_sender(s)),
         headers={'Authorization': f'Bearer {get_graph_token(s)}',
@@ -1655,23 +1655,17 @@ def create_graph_draft(s, recipient, subject, body, attachments):
     if response.status_code not in (200, 201):
         raise RuntimeError(f"Entwurf konnte nicht angelegt werden "
                            f"({response.status_code}): {_graph_error(response)}")
-    try:
-        return response.json().get('webLink', '')
-    except ValueError:
-        return ''
 
 
-# Ordner "Entwürfe" in Outlook im Web – sicherer Rückfallweg, falls der
-# Direktlink auf den Entwurf einmal nicht greift.
+# Ordner "Entwürfe" in Outlook im Web. Dorthin wird nach dem Anlegen
+# weitergeleitet – der neue Entwurf steht dort oben.
+#
+# Der `webLink`, den Graph zur Nachricht liefert, taugt dafür NICHT: mit seinem
+# `viewmodel=ReadMessageItem` (Lesemodus) meldet Outlook „Diese Nachricht wurde
+# möglicherweise verschoben oder gelöscht", und mit `ComposeMessageItem` „Diese
+# Seite funktioniert im Moment nicht". Beides wurde ausprobiert. Ein Entwurf
+# lässt sich über diese URL also nicht direkt öffnen.
 OUTLOOK_DRAFTS_URL = 'https://outlook.office.com/mail/drafts'
-
-
-def draft_open_url(weblink):
-    """Öffnungslink für einen Entwurf. Graph liefert den `webLink` mit
-    `viewmodel=ReadMessageItem` (Lesemodus). Für Entwürfe zeigt Outlook dort nur
-    „Diese Nachricht wurde möglicherweise verschoben oder gelöscht“ – sie müssen
-    im Verfassen-Modus geöffnet werden."""
-    return weblink.replace('viewmodel=ReadMessageItem', 'viewmodel=ComposeMessageItem')
 
 
 def build_eml(s, recipient, subject, body, attachments):
@@ -1914,19 +1908,15 @@ def draft_email(doc_type, doc_id):
     # geprüft werden. Fehlt die Berechtigung dafür, gibt es die .eml-Datei.
     if get_mail_method(s) == 'graph' and graph_can_draft(s):
         try:
-            weblink = create_graph_draft(s, recipient, subject, body, attachments)
+            create_graph_draft(s, recipient, subject, body, attachments)
             flash(f'Entwurf für {recipient} im Postfach abgelegt (Ordner "Entwürfe"). '
                   f'Bitte prüfen und dort selbst senden – der Belegstatus bleibt '
                   f'so lange unverändert.', 'success')
-            # Rückfallweg für den Fall, dass der Direktlink nicht greift.
-            flash(OUTLOOK_DRAFTS_URL, 'link')
-            # Das Formular wird mit target="_blank" abgeschickt: der Entwurf geht
-            # in einem neuen Tab auf, die Belegliste bleibt stehen. So wird er
-            # nicht übersehen. Die Flash-Meldungen erscheinen dort beim nächsten
-            # Seitenaufruf.
-            if weblink.startswith('https://'):
-                return redirect(draft_open_url(weblink))
-            return redirect(request.referrer or url_for('dashboard'))
+            # Das Formular wird mit target="_blank" abgeschickt: Outlook geht in
+            # einem neuen Tab auf, die Belegliste bleibt stehen. So wird der
+            # Entwurf nicht übersehen. Die Flash-Meldung erscheint dort beim
+            # nächsten Seitenaufruf.
+            return redirect(OUTLOOK_DRAFTS_URL)
         except Exception as e:
             # Kein Entwurf möglich (z.B. fehlende Berechtigung) – .eml ausliefern
             app.logger.warning('Graph-Entwurf fehlgeschlagen, .eml-Fallback: %s', e)
