@@ -290,13 +290,14 @@ gewünscht — nicht auf Direktversand zurückbauen. Zwei Wege, automatisch gew�
 
 - **Entwurf im Postfach** (bevorzugt, nur bei `mail_method='graph'`):
   `create_graph_draft()` legt die Mail per `POST /users/{sender}/messages` im
-  Ordner „Entwürfe" ab. Die Route leitet anschließend auf `OUTLOOK_DRAFTS_URL`
-  weiter, und die Formulare in den Listen haben `target="_blank"` — Outlook geht
-  also gleich in einem neuen Tab auf, während die Belegliste stehen bleibt
-  (damit der Entwurf nicht übersehen wird). Der `webLink` der Nachricht taugt
-  dafür NICHT: im Lesemodus meldet Outlook „verschoben oder gelöscht", mit
-  `viewmodel=ComposeMessageItem` „Diese Seite funktioniert im Moment nicht" —
-  beides ausprobiert, ein Entwurf lässt sich so nicht direkt öffnen. Das braucht
+  Ordner „Entwürfe" ab; die Belegliste zeigt danach nur die Meldung
+  „E-Mail im Outlook-Ordner "Entwürfe" erstellt.". Bearbeitet wird der Entwurf
+  im **Desktop-Outlook**. Bewusst wird NICHT auf Outlook im Web verlinkt oder
+  weitergeleitet: dort ist womöglich ein anderes Konto angemeldet, der Anwender
+  landete im falschen Postfach. Der `webLink` der Nachricht taugt ohnehin nicht
+  zum Öffnen eines Entwurfs — im Lesemodus meldet Outlook „verschoben oder
+  gelöscht", mit `viewmodel=ComposeMessageItem` „Diese Seite funktioniert im
+  Moment nicht" (beides ausprobiert). Das braucht
   die Anwendungsberechtigung **Mail.ReadWrite** — `Mail.Send` allein genügt
   NICHT. Beide sind im Tenant erteilt (Stand 02.09.2026, mit Administrator-
   zustimmung); `graph_can_draft()` prüft das vorab am `roles`-Claim des

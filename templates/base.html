@@ -90,14 +90,7 @@
     <main class="main-content">
       {% with messages = get_flashed_messages(with_categories=true) %}
         {% for category, message in messages %}
-          {% if category == 'link' %}
-            {# message ist eine URL, z.B. der Ordner "Entwürfe" in Outlook #}
-            <div class="alert alert-success">
-              <a href="{{ message }}" target="_blank" rel="noopener">In Outlook öffnen &#8599;</a>
-            </div>
-          {% else %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
-          {% endif %}
+          <div class="alert alert-{{ category }}">{{ message }}</div>
         {% endfor %}
       {% endwith %}
 

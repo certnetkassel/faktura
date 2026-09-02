@@ -1657,17 +1657,6 @@ def create_graph_draft(s, recipient, subject, body, attachments):
                            f"({response.status_code}): {_graph_error(response)}")
 
 
-# Ordner "Entwürfe" in Outlook im Web. Dorthin wird nach dem Anlegen
-# weitergeleitet – der neue Entwurf steht dort oben.
-#
-# Der `webLink`, den Graph zur Nachricht liefert, taugt dafür NICHT: mit seinem
-# `viewmodel=ReadMessageItem` (Lesemodus) meldet Outlook „Diese Nachricht wurde
-# möglicherweise verschoben oder gelöscht", und mit `ComposeMessageItem` „Diese
-# Seite funktioniert im Moment nicht". Beides wurde ausprobiert. Ein Entwurf
-# lässt sich über diese URL also nicht direkt öffnen.
-OUTLOOK_DRAFTS_URL = 'https://outlook.office.com/mail/drafts'
-
-
 def build_eml(s, recipient, subject, body, attachments):
     """Baut die E-Mail als .eml-Datei (Bytes). Der Header X-Unsent sorgt dafür,
     dass Outlook sie als noch nicht gesendeten Entwurf mit Senden-Button öffnet."""
@@ -1909,14 +1898,12 @@ def draft_email(doc_type, doc_id):
     if get_mail_method(s) == 'graph' and graph_can_draft(s):
         try:
             create_graph_draft(s, recipient, subject, body, attachments)
-            flash(f'Entwurf für {recipient} im Postfach abgelegt (Ordner "Entwürfe"). '
-                  f'Bitte prüfen und dort selbst senden – der Belegstatus bleibt '
-                  f'so lange unverändert.', 'success')
-            # Das Formular wird mit target="_blank" abgeschickt: Outlook geht in
-            # einem neuen Tab auf, die Belegliste bleibt stehen. So wird der
-            # Entwurf nicht übersehen. Die Flash-Meldung erscheint dort beim
-            # nächsten Seitenaufruf.
-            return redirect(OUTLOOK_DRAFTS_URL)
+            # Bewusst nur eine Meldung, kein Öffnen: der Entwurf wird im
+            # Desktop-Outlook bearbeitet. Ein Link auf Outlook im Web führt dort
+            # ins Postfach des im Browser angemeldeten Kontos – also womöglich
+            # ins falsche.
+            flash('E-Mail im Outlook-Ordner "Entwürfe" erstellt.', 'success')
+            return redirect(request.referrer or url_for('dashboard'))
         except Exception as e:
             # Kein Entwurf möglich (z.B. fehlende Berechtigung) – .eml ausliefern
             app.logger.warning('Graph-Entwurf fehlgeschlagen, .eml-Fallback: %s', e)
