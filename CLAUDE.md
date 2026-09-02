@@ -54,6 +54,24 @@ mehr überschreiben — z.B. schlägt der Vorlagen-Upload mit `PermissionError` 
 sobald `git pull` eine Datei in `vorlagen/` angefasst hat. Deshalb nach jedem Pull
 den chown ausführen.
 
+Das Repo auf dem Server zieht per **SSH** (Deploy-Key), nicht per HTTPS —
+sonst fragt `git pull` nach GitHub-Benutzername und bricht ab:
+
+```
+origin              git@github.com:certnetkassel/faktura.git
+core.sshCommand     ssh -i ~/.ssh/github_brr_ts -o IdentitiesOnly=yes
+```
+
+Der Schlüssel `~/.ssh/github_brr_ts` liegt auf dem Server und hat Zugriff auf
+das Repo. Bei einer Neuaufsetzung beides mit einrichten.
+
+WICHTIG: Vorlagen und Logos, die der Anwender über die Weboberfläche hochlädt,
+überschreiben die Dateien in `vorlagen/` bzw. `static/logos/` direkt auf dem
+Server. Sie sind dann dort geändert bzw. neu, aber nicht im Git — der nächste
+`git pull` bricht deshalb ab („would be overwritten"). Solche Uploads deshalb
+per SCP zurückholen und einchecken (vor dem Aufräumen auf dem Server mit
+`git hash-object` gegen die Repo-Version prüfen, damit nichts verloren geht).
+
 Alternativ: Dateien per SCP hochladen:
 ```bash
 scp <datei> ionos-crm4:/opt/faktura/<datei>
